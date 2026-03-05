@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.StaffManagementStaffDao">
+
+    <select id="getStaffById" resultType="ucl.group.excelSystem.api.db.pojo.BasicStaffEntity">
+        SELECT
+        staff_id AS staffId,
+        staff_name_kanji AS staffNameKanji,
+        staff_name_furikana AS staffNameFurikana,
+        company_id AS companyId,
+        staff_name_roma AS staffNameRoma,
+        staff_birthday AS staffBirthday,
+        sales_representitive AS salesRepresentitive,
+        operation_start_date AS operationStartDate,
+        operation_end_date AS operationEndDate,
+        latest_evaluation AS latestEvaluation,
+        active_flg AS activeFlg,
+        comment AS commit
+        FROM basic_v2_company_staff
+        WHERE staff_id = #{staffId}
+    </select>
+    <select id="getStaffIds" resultType="java.lang.Integer">
+        SELECT s.staff_id
+        FROM basic_v2_company_staff s
+        JOIN basic_v2_company_management c ON s.company_id = c.company_id
+        WHERE s.active_flg = 1
+        AND c.company_abbreviation = 'UCL';
+    </select>
+    <select id="getNameById" resultType="java.lang.String">
+        SELECT staff_name_kanji
+        FROM basic_v2_company_staff
+        WHERE staff_id = #{id}
+    </select>
+    <select id="getCompanys" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        SELECT
+        company_id AS companyId,
+        company_abbreviation AS companyAbbreviation
+        FROM basic_v2_company_management
+        WHERE active_flg = 1
+    </select>
+    <!-- 查询 staff_id 是否有活跃的 project_id -->
+    <select id="checkStaffHasActiveProject" resultType="int">
+        SELECT COUNT(1)
+        FROM basic_v2_project_detail
+        WHERE staff_id = #{staffId}
+        AND project_id IS NOT NULL
+        AND active_flg = 1
+    </select>
+    <select id="getProcurementCompanyIdByStaffId" resultType="java.lang.Integer">
+        SELECT company_id
+        FROM basic_v2_company_staff
+        WHERE staff_id = #{staffId}
+    </select>
+
+    <!--    &lt;!&ndash; 删除 staff_id (只有当没有活跃 project_id 时才能删除) &ndash;&gt;-->
+<!--    <delete id="deleteStaffIfNoActiveProject">-->
+<!--        DELETE FROM basic_v2_company_staff-->
+<!--        WHERE staff_id = #{staffId}-->
+<!--        AND NOT EXISTS (-->
+<!--        SELECT 1 FROM basic_v2_project_detail-->
+<!--        WHERE staff_id = #{staffId}-->
+<!--        AND project_id IS NOT NULL-->
+<!--        AND active_flg = 1-->
+<!--        )-->
+<!--    </delete>-->
+    <update id="setLaborInactiveFromMonth">
+        UPDATE basic_v2_labor_management
+        SET active_flg = 0
+        WHERE staff_id = #{staffId}
+        AND time >= #{fromMonth}
+    </update>
+
+</mapper>

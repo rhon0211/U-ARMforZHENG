@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.RelatedProjectTechnicianDao">
+
+    <!-- 基本的ResultMap -->
+    <resultMap id="RelatedProjectTechnicianMap" type="ucl.group.excelSystem.api.db.pojo.RelatedProjectTechnician">
+        <id column="project_technician_id" property="projectTechnicianId"/>
+        <result column="technician_id" property="technicianId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="status" property="status"/>
+        <result column="contract" property="contract"/>
+        <result column="remark" property="remark"/>
+        <result column="c_begin_month" property="cBeginMonth"/>
+        <result column="c_end_month" property="cEndMonth"/>
+        <result column="stop_month" property="stopMonth"/>
+        <result column="price_month" property="priceMonth"/>
+        <result column="c_lower_hours" property="cLowerHours"/>
+        <result column="c_higher_hours" property="cHigherHours"/>
+        <result column="c_reduct_price" property="cReductPrice"/>
+        <result column="c_increase_price" property="cIncreasePrice"/>
+        <result column="c_price" property="cPrice"/>
+        <result column="h_begin_month" property="hBeginMonth"/>
+        <result column="h_end_month" property="hEndMonth"/>
+        <result column="h_lower_hours" property="hLowerHours"/>
+        <result column="h_higher_hours" property="hHigherHours"/>
+        <result column="h_reduct_price" property="hReductPrice"/>
+        <result column="h_increase_price" property="hIncreasePrice"/>
+        <result column="h_price" property="hPrice"/>
+        <result column="standard_hours" property="standardHours"/>
+        <result column="contract_num" property="contractNum"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_by" property="updateBy"/>
+    </resultMap>
+
+    <sql id="relatedProjectTechnicianQuery">
+        SELECT
+        rpt.project_technician_id ,
+        rpt.technician_id ,
+        rpt.project_id ,
+        rpt.status ,
+        rpt.contract,
+        rpt.remark,
+        rpt.c_begin_month,
+        rpt.c_end_month ,
+        rpt.stop_month ,
+        rpt.price_month ,
+        rpt.c_lower_hours ,
+        rpt.c_higher_hours,
+        rpt.c_reduct_price ,
+        rpt.c_increase_price ,
+        rpt.c_price,
+        rpt.h_begin_month,
+        rpt.h_end_month,
+        rpt.h_lower_hours,
+        rpt.h_higher_hours ,
+        rpt.h_reduct_price ,
+        rpt.h_increase_price ,
+        rpt.h_price ,
+        rpt.standard_hours ,
+        rpt.contract_num ,
+        rpt.parent_id,
+        rpt.del_flag,
+        rpt.create_time
+        FROM related_v2_project_technician rpt
+    </sql>
+
+    <!-- 查询所有记录 -->
+    <select id="searchBetweenStartAndEnd" parameterType="String" resultMap="RelatedProjectTechnicianMap">
+        <include refid="relatedProjectTechnicianQuery"/>
+        WHERE rpt.del_flag = '0'
+        AND COALESCE(rpt.c_begin_month, '2000-01-01') &lt;= #{dateEnd}
+        AND
+        (rpt.stop_month IS NOT NULL AND COALESCE(rpt.stop_month, '9999-12-01') &gt; #{dateStart}
+        OR rpt.stop_month IS NULL AND COALESCE(rpt.c_end_month, '9999-12-01') &gt;= #{dateStart}
+        )
+    </select>
+
+    <update id="saveRemark" parameterType="ucl.group.excelSystem.api.controller.form.SaveTechnicianListForm">
+        update related_v2_project_technician
+        <set>
+            remark=#{remark},
+            update_time = sysdate(),
+            update_by=#{updateBy}
+        </set>
+        where technician_id=#{technicianId}
+    </update>
+
+    <select id="searchByProjectId" parameterType="long" resultMap="RelatedProjectTechnicianMap">
+        <include refid="relatedProjectTechnicianQuery"/>
+        where rpt.del_flag='0' and rpt.project_id =#{projectId}
+    </select>
+    <select id="searchByTechnicianId" parameterType="long" resultMap="RelatedProjectTechnicianMap">
+        <include refid="relatedProjectTechnicianQuery"/>
+        where rpt.del_flag='0' and rpt.technician_id =#{technicianId}
+    </select>
+
+    <select id="searchByProjectTechId" parameterType="Long" resultMap="RelatedProjectTechnicianMap">
+        <include refid="relatedProjectTechnicianQuery"/>
+        where rpt.project_technician_id =#{projectTechnicianId}
+    </select>
+
+    <select id="findAllById" resultType="ucl.group.excelSystem.api.db.pojo.RelatedProjectTechnician">
+        <include refid="relatedProjectTechnicianQuery"/>
+        WHERE rpt.project_technician_id IN
+        <foreach item="id" collection="projectTechnicianIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

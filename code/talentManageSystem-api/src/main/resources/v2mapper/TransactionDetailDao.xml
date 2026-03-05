@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.TransactionDetailDao">
+
+    <resultMap id="BaseResultMap" type="ucl.group.excelSystem.api.db.pojo.BasicTransactionDetailEntity">
+        <!-- 主键 -->
+        <id property="tradingId" column="tradingId"/>
+
+        <!-- 采购公司名称 -->
+        <result property="procurementCompanyName" column="procurementCompanyName"/>
+
+        <!-- 员工信息 -->
+        <result property="staffId" column="staffId"/>
+        <result property="staffNameKanji" column="staffNameKanji" jdbcType="VARCHAR"/>
+
+        <!-- 运营时间 -->
+        <result property="operatingTime" column="operatingTime"/>
+        <result property="overTime" column="over_time"/>
+
+        <!-- 财务数据 -->
+        <result property="salesAmount" column="salesAmount" jdbcType="DECIMAL"/>
+        <result property="amountRaised" column="amountRaised" jdbcType="DECIMAL"/>
+        <!-- 新增要员数据-->
+        <result property="settlementUpperLimit" column="settlementUpperLimit" jdbcType="DECIMAL"/>
+        <result property="settlementLowerLimit" column="settlementLowerLimit" jdbcType="DECIMAL"/>
+        <result property="upperLimit" column="upperLimit" jdbcType="DECIMAL"/>
+        <result property="lowerLimit" column="lowerLimit" jdbcType="DECIMAL"/>
+        <result property="salesIncrementUnitPriceHour" column="salesIncrementUnitPriceHour" jdbcType="DECIMAL"/>
+        <result property="salesDecrementUnitPriceHour" column="salesDecrementUnitPriceHour" jdbcType="DECIMAL"/>
+        <result property="procurementIncrementUnitPriceHour" column="procurementIncrementUnitPriceHour" jdbcType="DECIMAL"/>
+        <result property="procurementDecrementUnitPriceHour" column="procurementDecrementUnitPriceHour" jdbcType="DECIMAL"/>
+        <result property="upperLimit" column="upperLimit" jdbcType="VARCHAR"/>
+        <result property="lowerLimit" column="lowerLimit" jdbcType="VARCHAR"/>
+
+        <!-- 聚合计算数据 -->
+        <result property="totalSalesAmount" column="totalSalesAmount" jdbcType="DECIMAL"/>
+        <result property="totalOperatingTime" column="totalOperatingTime"/>
+        <result property="totalOverTime" column="totalOverTime"/>
+
+    </resultMap>
+    <delete id="deletePendingTransactionDetails">
+        DELETE FROM basic_v2_transaction_details
+        WHERE
+        trading_id = #{tradingId}
+        and
+        staff_id = 0
+    </delete>
+    <select id="getSalesAmount"
+            resultType="java.lang.Integer">
+        SELECT
+        sales_amount AS salesAmount
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND staff_id = #{staffId}
+    </select>
+    <update id="deleteStaffSales">
+        UPDATE basic_v2_trading_management
+        SET total_sales_amount = total_sales_amount - #{salesAmount}
+        WHERE
+        trading_id = #{tradingId}
+        AND
+        total_sales_amount - #{salesAmount} >= 0
+    </update>
+
+
+    <select id="getDetailsByMonthAndProjectWithTotals"
+            resultType="ucl.group.excelSystem.api.db.pojo.BasicTransactionDetailEntity">
+        SELECT DISTINCT
+        t.id AS id,
+        t.trading_id AS tradingId,
+        c.company_abbreviation AS procurementCompanyName,
+        t.staff_id AS staffId,
+        t.operating_time AS operatingTime,
+        t.over_time AS overTime,
+        t.sales_amount AS salesAmount,
+        t.amount_raised AS amountRaised,
+        s.staff_name_kanji AS staffNameKanji,
+        p.settlement_upper_limit AS settlementUpperLimit,
+        p.settlement_lower_limit AS settlementLowerLimit,
+        pd.upper_limit AS upperLimit,
+        pd.lower_limit AS lowerLimit,
+        pd.sales_increment_unit_price_hour AS salesIncrementUnitPriceHour,
+        pd.sales_decrement_unit_price_hour AS salesDecrementUnitPriceHour,
+        pd.procurement_increment_unit_price_hour AS procurementIncrementUnitPriceHour,
+        pd.procurement_decrement_unit_price_hour AS procurementDecrementUnitPriceHour,
+        pd.sales_amount AS baseSalesAmount,
+        pd.amount_raised AS baseAmountRaised,
+        SUM(t.sales_amount) OVER() AS totalSalesAmount,
+        SUM(t.operating_time) OVER() AS totalOperatingTime,
+        SUM(t.over_time) OVER() AS totalOvertime,
+        SUM(t.amount_raised) OVER() AS totalAmountRaised
+        FROM
+        basic_v2_transaction_details t
+        left JOIN
+        basic_v2_company_management c
+        ON t.procurement_company_id = c.company_id
+        left JOIN
+        basic_v2_company_staff s
+        ON t.staff_id = s.staff_id
+        left JOIN
+        basic_v2_trading_management m
+        ON t.trading_id = m.trading_id
+        left JOIN
+        basic_v2_project_manage p
+        ON m.project_id = p.project_id
+        left JOIN
+        basic_v2_project_detail pd
+        ON pd.project_id = p.project_id AND pd.staff_id = t.staff_id
+        left JOIN
+        basic_v2_year_and_month wd
+        ON DATE_FORMAT(m.applicable_month, '%Y-%m') = DATE_FORMAT(wd.month, '%Y-%m')
+        WHERE
+        t.active_flg = 1
+        AND DATEDIFF(m.applicable_month, #{month}) >= 0
+        AND DATEDIFF(m.applicable_month, #{month}) &lt; 32
+        AND m.project_id = #{projectId}
+        ORDER BY
+        t.trading_id ASC
+    </select>
+    <insert id="insertAccountsReceivableAndPayable">
+        INSERT INTO basic_v2_accounts_receivable_and_payable (company_id, BUY_AND_SELL_TYPE, target_year_and_month,
+        closing_date, line_total, expected_date_of_payment)
+        VALUES (#{companyId}, #{buyAndSellType}, #{targetYearAndMonth}, #{closingDate}, #{lineTotal},
+        #{expectedDateOfPayment})
+    </insert>
+    <insert id="insertTransactionDetail">
+        INSERT INTO basic_v2_transaction_details (A_id,procurement_company_id, staff_id,
+        operating_time, over_time, sales_amount, amount_raised, active_flg)
+        VALUES (#{A_id},#{procurementCompanyId}, #{staffId}, #{operatingTime}, #{overTime}, #{salesAmount},
+        #{amountRaised}, 1)
+    </insert>
+    <insert id="insertTradingManagement" useGeneratedKeys="true" keyProperty="tradingId">
+        INSERT INTO basic_v2_trading_management (
+        applicable_month, trading_status, sales_company_id, department_id,
+        project_id, total_operating_time, total_overtime, total_sales_amount,
+        total_amount_raised, estimated_sales_amount, total_settlement_amount_thismonth,
+        current_month_billing_amount, the_month_of_residual_amount
+        )
+        VALUES (
+        #{applicableMonth}, #{tradingStatus}, #{salesCompanyId}, #{departmentId},
+        #{projectId}, #{totalOperatingTime}, #{totalOverTime}, #{totalSalesAmount},
+        #{totalAmountRaised}, #{estimatedSalesAmount}, #{totalSettlementAmount},
+        #{currentMonthBillingAmount}, #{theMonthOfResidualAmount}
+        );
+    </insert>
+    <insert id="insertTransactionDetails">
+        INSERT INTO basic_v2_transaction_details (
+        trading_id, staff_id, procurement_company_id, operating_time, over_time, sales_amount, amount_raised
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.tradingId},
+            #{item.staffId},
+            #{item.procurementCompanyId},
+            #{item.operatingTime},
+            #{item.overTime},
+            #{item.salesAmount},
+            #{item.amountRaised}
+            )
+        </foreach>
+    </insert>
+
+
+    <insert id="insertClearingBalance">
+        INSERT INTO basic_v2_clearing_balance (
+        project_id, target_month, previous_month_actuarial_balance, the_month_of_actuarial_amount,
+        the_month_of_residual_amount
+        )
+        VALUES (#{projectId}, #{targetMonth}, #{previousMonthActuarialBalance}, #{theMonthOfActuarialAmount},
+        #{theMonthOfResidualAmount});
+    </insert>
+    <update id="updateTradingManagementTotals">
+        UPDATE basic_v2_trading_management
+        SET
+        total_operating_time = #{totalOperatingTime},
+        total_overtime = #{totalOverTime},
+        total_sales_amount = #{totalSalesAmount},
+        total_amount_raised = #{totalAmountRaised},
+        total_settlement_amount_thismonth = #{theMonthOfActuarialAmount},
+        the_month_of_residual_amount = #{theMonthOfResidualAmount}
+        WHERE
+        active_flg = 1
+        AND
+        trading_id = #{tradingId}
+    </update>
+    <update id="updateTransactionDetail">
+        UPDATE basic_v2_transaction_details
+        SET operating_time = #{operatingTime},
+        sales_amount = #{salesAmount},
+        over_time = #{overTime},
+        amount_raised = #{amountRaised}
+        WHERE id = #{id}
+    </update>
+    <update id="updateTheMonthActuarialAmount">
+        UPDATE basic_v2_clearing_balance
+        SET
+        the_month_of_actuarial_amount = #{theMonthActuarialAmount},
+        the_month_of_residual_amount = #{theMonthResidualAmount}
+        WHERE
+        project_id = #{projectId}
+        and
+        DATEDIFF(target_month, #{month}) >= 0
+        and
+        DATEDIFF(target_month, #{month}) &lt; 32
+    </update>
+    <update id="updateCurrentMonthBillingAmount">
+        UPDATE basic_v2_trading_management
+        SET current_month_billing_amount = #{currentMonthBillingAmount},
+        total_sales_amount = #{salesAmount},
+        total_amount_raised = #{totalAmountRaised}
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        and
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </update>
+    <update id="updateTradingStatusByMonth">
+        UPDATE basic_v2_trading_management
+        SET trading_status = #{tradingStatus}
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        and
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </update>
+    <update id="updateStatus">
+        UPDATE basic_v2_trading_management
+        SET trading_status = #{status}
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        and
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </update>
+    <update id="updateClearBalance">
+        UPDATE basic_v2_clearing_balance
+        SET
+        the_month_of_actuarial_amount = #{theMonthOfActuarialAmount},
+        the_month_of_residual_amount = #{theMonthOfResidualAmount}
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(target_month, #{month}) >= 0
+        and
+        DATEDIFF(target_month, #{month}) &lt; 32
+    </update>
+    <update id="updatePreviousMonthActuarialBalance">
+        UPDATE basic_v2_clearing_balance
+        SET
+        previous_month_actuarial_balance = #{theMonthOfResidualAmount}
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(target_month, #{month}) >= 0
+        and
+        DATEDIFF(target_month, #{month}) &lt; 33
+    </update>
+
+
+    <select id="searchOne" resultType="ucl.group.excelSystem.api.db.pojo.BasicTradingManagementEntity">
+        SELECT *
+        FROM basic_v2_trading_management
+        WHERE project_id = #{projectId}
+        and
+        DATEDIFF(applicable_month, #{month}) >= 0
+        and
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="getSaleOrProcurement" resultType="java.lang.Integer">
+        select sale_or_procurement from basic_v2_company_management where company_id = #{companyId}
+    </select>
+    <select id="getClosingDate" resultType="java.lang.String">
+        select closing_date from basic_v2_company_management where company_id = #{companyId}
+    </select>
+    <select id="getPaymentTerm" resultType="java.lang.String">
+        select payment_term from basic_v2_company_management where company_id = #{companyId}
+    </select>
+    <select id="getTotalSettlementAmountThismonth" resultType="java.lang.String">
+        select current_month_billing_amount
+        from basic_v2_trading_management
+        where
+        sales_company_id = #{companyId}
+        and
+        project_id = #{projectId}
+        and
+        DATEDIFF(applicable_month, #{month}) >= 0
+        and
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="getDetailsByMonthAndProject"
+            resultType="ucl.group.excelSystem.api.db.pojo.BasicTransactionDetailEntity">
+        SELECT
+        t.trading_id,
+        c.company_abbreviation AS procurementCompanyName,
+        t.staff_id,
+        t.operating_time,
+        t.over_time,
+        t.sales_amount,
+        t.amount_raised,
+        s.staff_name_kanji,
+        m.applicable_month,
+        p.project_name
+        FROM
+        basic_v2_transaction_details t
+        JOIN
+        basic_v2_company_management c ON t.procurement_company_id = c.company_id
+        JOIN
+        basic_v2_company_staff s ON t.staff_id = s.staff_id
+        JOIN
+        basic_v2_trading_management m ON t.trading_id = m.trading_id
+        JOIN
+        basic_v2_project_manage p ON m.project_id = p.project_id
+        WHERE
+        t.active_flg = 1
+        AND m.applicable_month BETWEEN
+        DATE_SUB(#{month}, INTERVAL 11 DAY)
+        AND DATE_ADD(#{month}, INTERVAL 19 DAY)
+        AND p.project_id = #{projectId}
+        ORDER BY
+        t.trading_id ASC
+    </select>
+
+    <select id="getClearBalanceData" resultType="ucl.group.excelSystem.api.db.pojo.vo.BasicClearBalance1Entity">
+        SELECT DISTINCT
+        tm.total_sales_amount AS salesAmount,
+        tm.total_amount_raised,
+        tm.current_month_billing_amount AS currentMonthBillingAmount,
+        cb.previous_month_actuarial_balance AS previousMonthActuarialBalance,
+        cb.the_month_of_actuarial_amount AS theMonthActuarialAmount,
+        cb.the_month_of_residual_amount AS theMonthResidualAmount
+        FROM basic_v2_trading_management tm
+        JOIN basic_v2_clearing_balance cb
+        ON tm.project_id = cb.project_id
+        WHERE
+        DATEDIFF(tm.applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(tm.applicable_month, #{month}) &lt; 32
+        AND
+        DATEDIFF(cb.target_month , #{month}) >= 0
+        AND
+        DATEDIFF(cb.target_month, #{month}) &lt; 32
+        and
+        tm.project_id = #{projectId}
+    </select>
+    <select id="isExist" resultType="java.lang.Boolean">
+        SELECT
+        CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END AS isExist
+        FROM basic_v2_trading_management
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="isExistClearing" resultType="java.lang.Boolean">
+        SELECT
+        CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END AS isExist
+        FROM basic_v2_clearing_balance
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(target_month, #{month}) >= 0
+        AND
+        DATEDIFF(target_month, #{month}) &lt; 32
+    </select>
+    <select id="getStaffsByProjectId" resultType="java.util.HashMap">
+        SELECT
+        pd.staff_id AS staffId,
+        pd.entry_date AS entryDate,
+        pd.planned_exit_date AS plannedExitDate,
+        pd.actual_exit_date AS actualExitDate,
+        s.staff_name_kanji AS staffNameKanji,
+        c.company_abbreviation AS procurementCompanyName
+        FROM basic_v2_project_detail pd
+        INNER JOIN basic_v2_company_staff s ON pd.staff_id = s.staff_id
+        INNER JOIN basic_v2_company_management c ON pd.company_id = c.company_id
+        WHERE pd.project_id = #{projectId}
+        AND (
+        (pd.planned_exit_date IS NULL AND pd.actual_exit_date IS NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pd.entry_date)
+        OR
+        (pd.planned_exit_date IS NOT NULL AND pd.actual_exit_date IS NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pd.entry_date AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= pd.planned_exit_date)
+        OR
+        (pd.planned_exit_date IS NULL AND pd.actual_exit_date IS NOT NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pd.entry_date AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= pd.actual_exit_date)
+        OR
+        (pd.planned_exit_date IS NOT NULL AND pd.actual_exit_date IS NOT NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pd.entry_date AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= pd.actual_exit_date)
+        )
+    </select>
+    <select id="isExistTradingManage" resultType="java.lang.Boolean">
+        SELECT
+        CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END AS isExist
+        FROM basic_v2_trading_management
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="checkProjectIdAndMonth" resultType="java.lang.Integer">
+        SELECT tm.trading_id
+        FROM basic_v2_trading_management tm
+        JOIN basic_v2_project_manage pm ON tm.project_id = pm.project_id
+        WHERE
+        DATEDIFF(tm.applicable_month, #{month}) >= 0
+        AND DATEDIFF(tm.applicable_month, #{month}) &lt; 32
+        AND NOT (
+        (pm.project_scheduled_end_date IS NULL AND pm.project_end_date IS NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pm.project_start_date)
+        OR
+        (pm.project_scheduled_end_date IS NOT NULL AND pm.project_end_date IS NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pm.project_start_date AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= pm.project_scheduled_end_date)
+        OR
+        (pm.project_scheduled_end_date IS NULL AND pm.project_end_date IS NOT NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pm.project_start_date AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= pm.project_end_date)
+        OR
+        (pm.project_scheduled_end_date IS NOT NULL AND pm.project_end_date IS NOT NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= pm.project_start_date AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= pm.project_end_date)
+        )
+        AND tm.project_id = #{projectId}
+    </select>
+
+    <delete id="deleteTransactionDetailsByTradingId">
+        DELETE FROM basic_v2_trading_management
+        WHERE trading_id = #{tradingId}
+    </delete>
+    <delete id="deleteTradingManagement">
+        DELETE FROM basic_v2_transaction_details
+        WHERE trading_id = #{tradingId}
+    </delete>
+    <select id="getTradingIdByProjectId" resultType="java.lang.Integer">
+        SELECT
+        trading_id
+        FROM basic_v2_trading_management
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="getStaffIdsByTradingId" resultType="java.lang.Integer">
+        SELECT staff_id
+        FROM basic_v2_transaction_details
+        WHERE trading_id = #{tradingId}
+    </select>
+    <select id="checkStaffInService" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM basic_v2_project_detail
+        WHERE staff_id = #{staffId}
+        AND (
+        (planned_exit_date IS NULL AND actual_exit_date IS NULL AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= entry_date)
+        OR
+        (planned_exit_date IS NOT NULL AND actual_exit_date IS NULL
+        AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= entry_date
+        AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= planned_exit_date)
+        OR
+        (planned_exit_date IS NULL AND actual_exit_date IS NOT NULL
+        AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= entry_date
+        AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= actual_exit_date)
+        OR
+        (planned_exit_date IS NOT NULL AND actual_exit_date IS NOT NULL
+        AND STR_TO_DATE(#{lastDayOfMonth}, '%Y-%m-%d') >= entry_date
+        AND STR_TO_DATE(#{month}, '%Y-%m-%d') &lt;= actual_exit_date)
+        )
+    </select>
+    <delete id="deleteTsdByTradingIdAndStaffId">
+        DELETE FROM basic_v2_transaction_details
+        WHERE trading_id = #{tradingId}
+        AND staff_id = #{staffId}
+    </delete>
+
+    <select id="isExistTransactionDetails" resultType="java.lang.Boolean">
+        SELECT
+        CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END AS isExist
+        FROM basic_v2_transaction_details
+        WHERE
+        trading_id = #{tradingId}
+        and
+        staff_id = 0
+    </select>
+    <select id="getAmountRaised" resultType="java.math.BigDecimal">
+        SELECT
+        SUM(pd.amount_raised) AS amountRaised
+        FROM basic_v2_project_detail pd
+        join basic_v2_project_manage pm on pd.project_id = pm.project_id
+        WHERE
+        pd.project_id = #{projectId}
+        and
+        pd.staff_id IN (
+        <foreach collection="staffIds" item="staffId" separator=",">
+            #{staffId}
+        </foreach>
+        )
+    </select>
+    <select id="getStaffIdsByProjectId" resultType="java.lang.Integer">
+        SELECT DISTINCT
+        td.staff_id
+        FROM basic_v2_transaction_details td
+        JOIN basic_v2_trading_management tm
+        ON tm.trading_id = td.trading_id
+        WHERE
+        tm.project_id = #{projectId}
+        AND
+        td.active_flg = 1;
+    </select>
+
+    <select id="countReceivable" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM basic_v2_accounts_receivable_and_payable
+        WHERE company_id = #{salesCompanyId}
+        AND BUY_AND_SELL_TYPE = #{buyAndSellType}
+        AND target_year_and_month = #{targetYearAndMonth}
+    </select>
+    <select id="countPayable" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM basic_v2_accounts_receivable_and_payable
+        WHERE company_id = #{procurementCompanyId}
+        AND BUY_AND_SELL_TYPE = #{buyAndSellType}
+        AND target_year_and_month = #{targetYearAndMonth}
+    </select>
+    <select id="getEstimatedSalesAmountByTradingId" resultType="java.math.BigDecimal">
+        SELECT
+        estimated_sales_amount
+        FROM basic_v2_trading_management
+        WHERE trading_id = #{tradingId}
+    </select>
+    <select id="selectTradingStatus" resultType="java.lang.Integer">
+        SELECT
+        trading_status
+        FROM basic_v2_trading_management
+        WHERE project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="getTheMonthOfResidualAmount" resultType="java.math.BigDecimal">
+        SELECT
+        the_month_of_residual_amount
+        FROM basic_v2_clearing_balance
+        WHERE
+        project_id = #{projectId}
+        AND
+        DATEDIFF(target_month, #{month}) >= 0
+        AND
+        DATEDIFF(target_month, #{month}) &lt; 32
+        And
+        active_flg = 1
+    </select>
+    <select id="getStaffIdsByProjectIdApplicableMonth" resultType="java.lang.Integer">
+        SELECT DISTINCT
+        td.staff_id
+        FROM basic_v2_transaction_details td
+        JOIN basic_v2_trading_management tm
+        ON tm.trading_id = td.trading_id
+        WHERE
+        tm.project_id = #{projectId}
+        AND
+        DATEDIFF(applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(applicable_month, #{month}) &lt; 32
+        AND
+        td.active_flg = 1
+    </select>
+    <select id="getProcurementCompanyIds" resultType="java.lang.Integer">
+        SELECT
+        DISTINCT
+        cm.company_id
+        FROM basic_v2_transaction_details td
+        join basic_v2_company_management cm on td.procurement_company_id = cm.company_id
+        join basic_v2_trading_management tm on td.trading_id = tm.trading_id
+        WHERE
+        tm.project_id = #{projectId}
+        and
+        DATEDIFF(tm.applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(tm.applicable_month, #{month}) &lt; 32
+    </select>
+    <select id="getTotalAmountRaised" resultType="java.math.BigDecimal">
+        SELECT
+        SUM(td.amount_raised) AS totalAmountRaised
+        FROM basic_v2_transaction_details td
+        join basic_v2_trading_management tm on td.trading_id = tm.trading_id
+        WHERE
+        tm.project_id = #{projectId}
+        and
+        DATEDIFF(tm.applicable_month, #{month}) >= 0
+        AND
+        DATEDIFF(tm.applicable_month, #{month}) &lt; 32
+    </select>
+
+</mapper>

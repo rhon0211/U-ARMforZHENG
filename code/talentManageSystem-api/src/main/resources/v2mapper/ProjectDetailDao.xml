@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.ProjectDetailDao">
+    <select id="existsByDepartmentIdAndProjectName" resultType="boolean">
+        SELECT EXISTS (
+        SELECT 1
+        FROM basic_v2_project_manage
+        WHERE department_id = #{departmentId}
+        AND project_name = #{projectName}
+        AND active_flg = 1
+        <if test="projectId != null">
+            AND project_id != #{projectId}
+        </if>
+        )
+    </select>
+
+    <select id="queryCompaniesByMonth" resultType="ucl.group.excelSystem.api.db.dto.CompanyDTO">
+        SELECT
+        c.company_id AS salesCompanyId,
+        c.company_abbreviation AS companyAbbreviation,
+        COUNT(DISTINCT p.project_id) AS projectCount
+        FROM
+        basic_v2_company_management c
+        LEFT JOIN
+        basic_v2_department_management d
+        ON c.company_id = d.company_id
+        LEFT JOIN
+        basic_v2_project_manage p
+        ON d.department_id = p.department_id
+        AND p.sales_company_id = c.company_id
+        WHERE
+        c.sale_or_procurement = 1
+        AND p.project_start_date &lt;= #{startDate}
+        AND (
+        (p.project_end_date IS NOT NULL AND p.project_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NOT NULL
+        AND p.project_scheduled_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NULL)
+        )
+        GROUP BY
+        c.company_id
+        LIMIT #{start}, #{length}
+    </select>
+
+
+
+
+    <select id="queryDepartmentsByMonth" resultType="ucl.group.excelSystem.api.db.dto.DepartmentDTO">
+        SELECT
+        d.department_id AS departmentId,
+        d.department_abbreviation AS departmentAbbreviation,
+        d.principal_name AS principalName,
+        d.company_id AS companyId,
+        COUNT(DISTINCT p.project_id) AS departmentProjectCount
+        FROM
+        basic_v2_department_management d
+        LEFT JOIN
+        basic_v2_company_management c
+        ON d.company_id = c.company_id
+        LEFT JOIN
+        basic_v2_project_manage p
+        ON d.department_id = p.department_id
+        AND p.sales_company_id = c.company_id
+        WHERE
+        c.sale_or_procurement = 1
+        AND p.project_start_date &lt;= #{startDate}
+        AND (
+        (p.project_end_date IS NOT NULL AND p.project_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NOT NULL
+        AND p.project_scheduled_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NULL)
+        )
+        GROUP BY
+        d.department_id
+    </select>
+
+
+
+
+
+    <!-- 查询项目数据 -->
+    <select id="queryProjectsByMonth" resultType="ucl.group.excelSystem.api.db.dto.ProjectDTO">
+        SELECT
+        p.project_id AS projectId,
+        p.project_name AS projectName,
+        p.project_name_abbreviation AS projectNameAbbreviation,
+        COUNT(DISTINCT pd.staff_id) AS staffCount,
+        p.department_id AS departmentId,
+        p.sales_company_id AS companyId,
+        p.project_start_date AS projectStartDate,
+        p.project_scheduled_end_date AS projectScheduledEndDate,
+        p.project_end_date AS projectEndDate,
+        p.comment AS projectComment
+        FROM
+        basic_v2_project_manage p
+        LEFT JOIN
+        basic_v2_project_detail pd
+        ON p.project_id = pd.project_id
+        LEFT JOIN
+        basic_v2_company_management c
+        ON p.sales_company_id = c.company_id
+        WHERE
+        c.sale_or_procurement = 1
+        AND p.project_start_date &lt;= #{startDate}
+        AND (
+        (p.project_end_date IS NOT NULL AND p.project_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NOT NULL
+        AND p.project_scheduled_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NULL)
+        )
+        GROUP BY
+        p.project_id
+    </select>
+
+
+
+
+    <!-- 查询公司总数 -->
+    <select id="queryCompanyCount" resultType="int">
+        SELECT
+        COUNT(DISTINCT c.company_id)
+        FROM
+        basic_v2_company_management c
+        LEFT JOIN
+        basic_v2_department_management d
+        ON c.company_id = d.company_id
+        LEFT JOIN
+        basic_v2_project_manage p
+        ON d.department_id = p.department_id
+        AND p.sales_company_id = c.company_id
+        WHERE
+        c.sale_or_procurement = 1
+        AND p.project_start_date &lt;= #{startDate}
+        AND (
+        (p.project_end_date IS NOT NULL AND p.project_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NOT NULL
+        AND p.project_scheduled_end_date &gt;= DATE_FORMAT(#{startDate}, '%Y-%m-01'))
+        OR
+        (p.project_end_date IS NULL AND p.project_scheduled_end_date IS NULL)
+        )
+    </select>
+
+
+
+
+    <!-- 查询初始化信息（销售公司、部门、劳动公司和员工） -->
+    <select id="getInitializationData" parameterType="map" resultType="java.util.HashMap">
+        SELECT
+        -- 获取销售公司简称
+        (SELECT company_abbreviation
+        FROM basic_v2_company_management
+        WHERE company_id = #{salesCompanyId}
+        AND sale_or_procurement = '1'
+        AND active_flg = 1
+        AND active_flg = 1) AS salesCompanyAbbreviation,
+
+        -- 获取部门简称与部署责任人
+        (SELECT department_abbreviation
+        FROM basic_v2_department_management
+        WHERE department_id = #{departmentId}
+        AND active_flg = 1
+        ) AS departmentAbbreviation,
+        -- 获取部门负责人姓名
+        (SELECT principal_name
+        FROM basic_v2_department_management
+        WHERE department_id = #{departmentId}
+        AND active_flg = 1
+        ) AS principalName,
+
+
+
+        -- 获取劳动公司及其员工
+        (SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'companyId', cm.company_id,
+        'companyName', cm.company_name,
+        'companyAbbreviation', cm.company_abbreviation,
+        'staff', staffList.staff_json
+        )
+        )
+        FROM basic_v2_company_management cm
+        LEFT JOIN (
+        SELECT cs.company_id,
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'staffId', cs.staff_id,
+        'staffName', cs.staff_name_kanji,
+        'noActiveProjects', (
+        CASE
+        WHEN EXISTS (
+        SELECT 1
+        FROM basic_v2_project_detail pd
+        WHERE pd.staff_id = cs.staff_id
+        AND pd.active_flg = 1
+        )
+        THEN 'FALSE'
+        ELSE 'TRUE'
+        END
+        )
+        )
+        ) AS staff_json
+        FROM basic_v2_company_staff cs
+        WHERE cs.active_flg = 1
+        GROUP BY cs.company_id
+        ) AS staffList ON cm.company_id = staffList.company_id
+        WHERE cm.sale_or_procurement IN ('2', '3')
+        AND cm.active_flg = 1
+        ) AS laborCompaniesWithStaff;
+    </select>
+
+
+
+    <select id="getExtendedInitializationData" parameterType="map" resultType="java.util.HashMap">
+        SELECT
+        -- 获取销售公司简称
+        (SELECT company_abbreviation
+        FROM basic_v2_company_management
+        WHERE company_id = #{salesCompanyId} AND sale_or_procurement = '1'
+        ) AS salesCompanyAbbreviation,
+        -- 获取部门简称与责任人
+        (SELECT department_abbreviation
+        FROM basic_v2_department_management
+        WHERE department_id = #{departmentId}) AS departmentAbbreviation,
+        -- 获取部门负责人姓名
+        (SELECT principal_name
+        FROM basic_v2_department_management
+        WHERE department_id = #{departmentId}
+        ) AS principalName,
+        -- 获取项目基本信息
+        (SELECT JSON_OBJECT(
+        'projectId', p.project_id,
+        'projectName', p.project_name,
+        'projectNameAbbreviation', p.project_name_abbreviation,
+        'departmentId', p.department_id,
+        'salesCompanyId', p.sales_company_id,
+        'projectStartDate', p.project_start_date,
+        'projectScheduledEndDate', p.project_scheduled_end_date,
+        'projectEndDate', p.project_end_date,
+        'siteAddress', p.site_address,
+        'startTime',DATE_FORMAT(p.start_time, '%H:%i'),
+        'endTime', DATE_FORMAT(p.end_time, '%H:%i'),
+        'dailyOperatingHours', p.daily_operating_hours,
+        'settlementUpperLimit', p.settlement_upper_limit,
+        'settlementLowerLimit', p.settlement_lower_limit,
+        'comment', p.comment
+        )
+        FROM basic_v2_project_manage p
+        WHERE p.project_id = #{projectId}
+        ) AS projectInfo,
+
+        -- 获取项目详细信息（附加公司简称和员工名称）
+        (
+        SELECT IFNULL(JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'companyId', IFNULL(pd.company_id, 0),
+        'companyName', IFNULL((
+        SELECT company_abbreviation
+        FROM basic_v2_company_management cm
+        WHERE cm.company_id = pd.company_id
+        ), ''),
+        'staffId', IFNULL(pd.staff_id, 0),
+        'staffName', IFNULL((
+        SELECT staff_name_kanji
+        FROM basic_v2_company_staff cs
+        WHERE cs.staff_id = pd.staff_id
+        ), ''),
+        'entryDate', IFNULL(DATE_FORMAT(pd.entry_date, '%Y-%m-%d'), null),
+        'plannedExitDate', IFNULL(DATE_FORMAT(pd.planned_exit_date, '%Y-%m-%d'), null),
+        'actualExitDate', IFNULL(DATE_FORMAT(pd.actual_exit_date, '%Y-%m-%d'), null),
+        'salesAmount', IFNULL(pd.sales_amount, 0),
+        'salesIncrementUnitPriceHour', IFNULL(pd.sales_increment_unit_price_hour, 0),
+        'salesDecrementUnitPriceHour', IFNULL(pd.sales_decrement_unit_price_hour, 0),
+        'amountRaised', IFNULL(pd.amount_raised, 0),
+        'procurementIncrementUnitPriceHour', IFNULL(pd.procurement_increment_unit_price_hour, 0),
+        'procurementDecrementUnitPriceHour', IFNULL(pd.procurement_decrement_unit_price_hour, 0),
+        'upperLimit', IFNULL(pd.upper_limit, 0),
+        'lowerLimit', IFNULL(pd.lower_limit, 0),
+        'comment', IFNULL(pd.comment, '')
+        )
+        ), JSON_ARRAY())
+        FROM basic_v2_project_detail pd
+        WHERE pd.project_id = #{projectId}
+        AND pd.active_flg = 1
+        ) AS projectDetails,
+        -- 获取劳动公司及其员工
+        (SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'companyId', cm.company_id,
+        'companyName', cm.company_name,
+        'companyAbbreviation', cm.company_abbreviation,
+        'staff', staffList.staff_json
+        )
+        )
+        FROM basic_v2_company_management cm
+        LEFT JOIN (
+        SELECT cs.company_id,
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'staffId', cs.staff_id,
+        'staffName', cs.staff_name_kanji,
+        'noActiveProjects', (
+        CASE
+        WHEN EXISTS (
+        SELECT 1
+        FROM basic_v2_project_detail pd
+        WHERE pd.staff_id = cs.staff_id
+        )
+        THEN 'FALSE'
+        ELSE 'TRUE'
+        END
+        )
+        )
+        ) AS staff_json
+        FROM basic_v2_company_staff cs
+        WHERE cs.active_flg = 1
+        GROUP BY cs.company_id
+        ) AS staffList ON cm.company_id = staffList.company_id
+        WHERE cm.sale_or_procurement IN ('2', '3')
+        AND cm.active_flg = 1
+        ) AS laborCompaniesWithStaff;
+    </select>
+    <!-- 追加案件信息 -->
+    <select id="getAdditionalInitializationData" parameterType="map" resultType="java.util.HashMap">
+        SELECT
+        -- 获取所有销售公司及其部门信息（JSON 格式）
+        (SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'companyId', c.company_id,
+        'companyAbbreviation', c.company_abbreviation,
+        'departments', (
+        SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'departmentId', d.department_id,
+        'departmentAbbreviation', d.department_abbreviation,
+        'principalName', d.principal_name
+        )
+        )
+        FROM basic_v2_department_management d
+        WHERE d.company_id = c.company_id
+        AND d.active_flg = 1
+        )
+        )
+        )
+        FROM basic_v2_company_management c
+        WHERE c.sale_or_procurement = '1'AND active_flg = 1) AS salesCompaniesWithDepartments,
+        -- 空的项目基本信息
+        (SELECT JSON_OBJECT(
+        'projectId', NULL,
+        'projectName', NULL,
+        'projectNameAbbreviation', NULL,
+        'departmentId', NULL,
+        'salesCompanyId', NULL,
+        'projectStartDate', NULL,
+        'projectScheduledEndDate', NULL,
+        'projectEndDate', NULL,
+        'siteAddress', NULL,
+        'startTime', NULL,
+        'endTime', NULL,
+        'dailyOperatingHours', NULL,
+        'settlementUpperLimit', NULL,
+        'settlementLowerLimit', NULL,
+        'comment', NULL
+        )) AS projectInfo,
+        -- 空的项目详细信息（JSON 数组）
+        (SELECT JSON_ARRAY()) AS projectDetails,
+
+        -- 获取劳动公司及其员工
+        (SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'companyId', cm.company_id,
+        'companyName', cm.company_name,
+        'companyAbbreviation', cm.company_abbreviation,
+        'staff', staffList.staff_json
+        )
+        )
+        FROM basic_v2_company_management cm
+        LEFT JOIN (
+        SELECT cs.company_id,
+        JSON_ARRAYAGG(
+        JSON_OBJECT(
+        'staffId', cs.staff_id,
+        'staffName', cs.staff_name_kanji,
+        'noActiveProjects', (
+        CASE
+        WHEN EXISTS (
+        SELECT 1
+        FROM basic_v2_project_detail pd
+        WHERE pd.staff_id = cs.staff_id
+        AND pd.active_flg = 1
+        )
+        THEN 'FALSE'
+        ELSE 'TRUE'
+        END
+        )
+        )
+        ) AS staff_json
+        FROM basic_v2_company_staff cs
+        WHERE cs.active_flg = 1
+        GROUP BY cs.company_id
+        ) AS staffList ON cm.company_id = staffList.company_id
+        WHERE cm.sale_or_procurement IN ('2', '3')
+        AND cm.active_flg = 1
+        ) AS laborCompaniesWithStaff;
+    </select>
+
+    <insert id="insertProject" parameterType="ucl.group.excelSystem.api.db.pojo.ProjectEntity" useGeneratedKeys="true"
+            keyProperty="projectId">
+        INSERT INTO basic_v2_project_manage (
+        sales_company_id, department_id, project_name,
+        project_name_abbreviation, project_start_date, project_scheduled_end_date,
+        project_end_date, site_address, start_time, end_time,
+        daily_operating_hours, settlement_upper_limit, settlement_lower_limit
+        ) VALUES (
+        #{salesCompanyId}, #{departmentId}, #{projectName},
+        #{projectNameAbbreviation}, #{projectStartDate}, #{projectScheduledEndDate},
+        #{projectEndDate}, #{siteAddress}, #{startTime}, #{endTime},
+        #{dailyOperatingHours}, #{settlementUpperLimit}, #{settlementLowerLimit}
+        )
+    </insert>
+
+    <insert id="insertProjectDetails" parameterType="map">
+        INSERT INTO basic_v2_project_detail (
+        project_id, staff_id, company_id, entry_date, planned_exit_date,
+        actual_exit_date, sales_amount, sales_increment_unit_price_hour,
+        sales_decrement_unit_price_hour, amount_raised,
+        procurement_increment_unit_price_hour, procurement_decrement_unit_price_hour,
+        upper_limit, lower_limit,
+        comment
+        ) VALUES
+        <foreach collection="details" item="detail" separator=",">
+            (
+            #{projectId}, #{detail.staffId}, #{detail.companyId},
+            #{detail.entryDate}, #{detail.plannedExitDate}, #{detail.actualExitDate},
+            #{detail.salesAmount}, #{detail.salesIncrementUnitPriceHour},
+            #{detail.salesDecrementUnitPriceHour}, #{detail.amountRaised},
+            #{detail.procurementIncrementUnitPriceHour}, #{detail.procurementDecrementUnitPriceHour},
+            #{detail.upperLimit}, #{detail.lowerLimit},
+            #{detail.comment}
+            )
+        </foreach>
+    </insert>
+
+
+    <!-- 更新案件详细信息 -->
+    <update id="updateProjectDetails" parameterType="ucl.group.excelSystem.api.db.pojo.ProjectDetailEntity">
+        UPDATE basic_v2_project_detail
+        <set>
+            <if test="entryDate != null">entry_date = #{entryDate},</if>
+            <if test="plannedExitDate != null">planned_exit_date = #{plannedExitDate},</if>
+            <if test="actualExitDate != null">actual_exit_date = #{actualExitDate},</if>
+            <if test="salesAmount != null">sales_amount = #{salesAmount},</if>
+            <if test="salesIncrementUnitPriceHour != null">sales_increment_unit_price_hour =
+                #{salesIncrementUnitPriceHour},
+            </if>
+            <if test="salesDecrementUnitPriceHour != null">sales_decrement_unit_price_hour =
+                #{salesDecrementUnitPriceHour},
+            </if>
+            <if test="amountRaised != null">amount_raised = #{amountRaised},</if>
+            <if test="procurementIncrementUnitPriceHour != null">procurement_increment_unit_price_hour =
+                #{procurementIncrementUnitPriceHour},
+            </if>
+            <if test="procurementDecrementUnitPriceHour != null">procurement_decrement_unit_price_hour =
+                #{procurementDecrementUnitPriceHour},
+            </if>
+            <if test="upperLimt != null">upper_limit = #{upperLimit},
+            </if>
+            <if test="lowerLimt != null">lower_limit = #{lowerLimit},
+            </if>
+            <if test="comment != null">comment = #{comment}</if>
+        </set>
+        WHERE project_id = #{projectId}
+        AND company_id = #{companyId}
+        AND staff_id = #{staffId}
+    </update>
+    <delete id="deleteProjectDetails" parameterType="java.lang.Integer">
+        DELETE FROM basic_v2_project_detail WHERE project_id = #{projectId}
+    </delete>
+    <update id="updateProject" parameterType="ucl.group.excelSystem.api.db.pojo.ProjectEntity">
+        UPDATE basic_v2_project_manage
+        SET project_name = #{projectName},
+        project_name_abbreviation = #{projectNameAbbreviation},
+        project_start_date = #{projectStartDate},
+        project_scheduled_end_date = #{projectScheduledEndDate},
+        project_end_date = #{projectEndDate},
+        site_address = #{siteAddress},
+        start_time = #{startTime},
+        end_time = #{endTime},
+        daily_operating_hours = #{dailyOperatingHours},
+        settlement_upper_limit = #{settlementUpperLimit},
+        settlement_lower_limit = #{settlementLowerLimit},
+        comment = #{comment}
+        WHERE project_id = #{projectId}
+    </update>
+
+
+</mapper>

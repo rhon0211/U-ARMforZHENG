@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.InterviewerDao">
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewerEntity" id="InterviewerResult">
+        <id property="interviewerId" column="interviewer_id"/>
+        <result property="pseudonym" column="pseudonym"/>
+        <result property="name" column="name"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="created_by"/>
+        <result property="createTime" column="created_time"/>
+    </resultMap>
+
+    <sql id="selectViewerAndInfo">
+        select
+        interviewer_id,name,pseudonym,type,status,del_flag,remark,created_by,created_time
+        from basic_interviewer
+    </sql>
+    <select id="searchCount"
+            parameterType="ucl.group.talentManageSystem.api.controller.form.talentForm.InterviewerByPageForm"
+            resultType="Integer">
+        select count(*)
+        from basic_interviewer
+        where del_flag='0'
+        <if test="name != null and name != ''">
+            AND name like concat('%', #{name}, '%')
+        </if>
+        <if test="type != null and type != ''">
+            AND type like concat('%', #{type}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND status like concat('%', #{status}, '%')
+        </if>
+    </select>
+    <select id="searchByPage"
+            parameterType="ucl.group.talentManageSystem.api.controller.form.talentForm.InterviewerByPageForm"
+            resultMap="InterviewerResult">
+        <include refid="selectViewerAndInfo"/>
+        where del_flag='0'
+        <if test="name != null and name != ''">
+            AND name like concat('%', #{name}, '%')
+        </if>
+        <if test="type != null">
+            AND type like concat('%', #{type}, '%')
+        </if>
+        <if test="status != null">
+            AND status like concat('%', #{status}, '%')
+        </if>
+        <if test="orderColumn != null and orderSeq != null">
+            ORDER BY ${orderColumn} ${orderSeq}
+        </if>
+        LIMIT ${length} OFFSET ${start}
+    </select>
+    <select id="searchById" parameterType="int" resultMap="InterviewerResult">
+        <include refid="selectViewerAndInfo"/>
+        where del_flag='0'
+        and interviewer_id=#{interviewerId}
+    </select>
+    <select id="searchByType" parameterType="String" resultMap="InterviewerResult">
+        <include refid="selectViewerAndInfo"/>
+        where del_flag='0'
+        <if test="type!=null and type!=''">
+            and type=#{type}
+        </if>
+
+
+    </select>
+    <insert id="add" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewerEntity"
+            useGeneratedKeys="true"
+            keyProperty="interviewerId">
+        insert into basic_interviewer(
+        <if test="interviewerId != null and interviewerId != 0">interviewer_id,</if>
+        <if test="name != null and name != ''">name,</if>
+        <if test="pseudonym != null">pseudonym,</if>
+        <if test="type != null ">type,</if>
+        <if test="status != null ">status,</if>
+        <if test="remark != null ">remark,</if>
+        <if test="createBy != null and createBy != ''">created_by,</if>
+        created_time
+        )values(
+        <if test="interviewerId != null and interviewerId != 0">#{interviewerId},</if>
+        <if test="name != null and name != ''">#{name},</if>
+        <if test="pseudonym != null ">#{pseudonym},</if>
+        <if test="type != null ">#{type},</if>
+        <if test="status != null ">#{status},</if>
+        <if test="remark != null ">#{remark},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        sysdate()
+        )
+    </insert>
+    <update id="edit" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewerEntity">
+        update basic_interviewer
+        <set>
+            <if test="name != null and name != ''">name=#{name},</if>
+            <if test="pseudonym != null ">pseudonym=#{pseudonym},</if>
+            <if test="type != null ">type=#{type},</if>
+            <if test="status != null ">status=#{status},</if>
+            <if test="remark != null ">remark=#{remark},</if>
+            <if test="updateBy != null and updateBy != ''">updated_by=#{updateBy},</if>
+            updated_time = sysdate()
+        </set>
+        where interviewer_id = #{interviewerId}
+
+    </update>
+    <delete id="remove" parameterType="int">
+        update basic_interviewer set del_flag = '2' where interviewer_id in
+        <foreach collection="array" item="interviewerId" open="(" separator="," close=")">
+            #{interviewerId}
+        </foreach>
+    </delete>
+    <!-- 根据类型查询面试官信息 -->
+    <select id="findInterviewersByType" resultMap="InterviewerResult">
+        SELECT *
+        FROM basic_interviewer
+        WHERE type = #{type}
+          AND del_flag = 0
+    </select>
+
+    <!-- 根据类型和日期范围查询符合条件的面试官实体 -->
+    <select id="findInterviewerIdsByTypeAndDate" resultMap="InterviewerResult">
+        SELECT bi.*
+        FROM basic_interviewer bi
+                 JOIN basic_interview_info bii ON bi.interviewer_id = bii.bus_interviewer OR bi.interviewer_id = bii.tech_interviewer
+        WHERE bi.type = #{type}
+          AND (bii.bus_date BETWEEN #{startTime} AND #{endTime} OR bii.tech_date BETWEEN #{startTime} AND #{endTime})
+          AND bi.del_flag = 0
+    </select>
+
+
+</mapper>

@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.ReceivableAndPayableDao">
+    <select id="getReceivableList" resultType="java.util.HashMap">
+        select
+        d.department_abbreviation AS departAbbreviation,
+        p.project_name_abbreviation AS projectAbbreviation,
+        t.current_month_billing_amount AS totalSalesAmount
+        from basic_v2_trading_management t
+        join basic_v2_department_management d on t.department_id = d.department_id
+        join basic_v2_project_manage p on t.project_id = p.project_id
+        where
+        t.sales_company_id = #{companyId}
+        and
+        t.applicable_month = #{targetYearAndMonth}
+        and
+        p.project_start_date &lt;= #{targetYearAndMonth}
+        and
+        t.active_flg = 1
+        and
+        d.active_flg = 1
+        and
+        p.active_flg = 1
+    </select>
+
+    <select id="getPayableList" resultType="java.util.HashMap">
+        select
+        s.staff_name_kanji AS staffNameKanji,
+        p.amount_raised AS amountRaised
+        from basic_v2_project_detail p
+        join basic_v2_company_staff s on p.staff_id = s.staff_id
+        join basic_v2_project_detail pm on p.project_id = pm.project_id
+        where
+        p.company_id = #{companyId}
+        and
+        pm.entry_date &lt;= #{targetYearAndMonth}
+        and
+        p.active_flg = 1
+        and
+        s.active_flg = 1
+    </select>
+    <update id="updateReceivable">
+        update basic_v2_accounts_receivable_and_payable
+        set
+        deposit_amount = #{depositAmount},
+        deposit_date = #{depositDate},
+        commission = #{commission}
+        where
+        company_id = #{companyId}
+    </update>
+    <select id="getPayableByDateRange" resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        SELECT
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        FROM
+        basic_v2_accounts_receivable_and_payable r
+        LEFT JOIN basic_v2_company_management c ON r.company_id = c.company_id
+        WHERE
+        r.BUY_AND_SELL_TYPE = 2
+        AND c.sale_or_procurement = 2
+        AND r.active_flg = 1
+        AND c.active_flg = 1
+        <if test="expectedStart != null">
+            AND r.expected_date_of_payment &gt;= #{expectedStart}
+        </if>
+        <if test="expectedEnd != null">
+            AND r.expected_date_of_payment &lt;= #{expectedEnd}
+        </if>
+        <if test="closingStart != null">
+            AND STR_TO_DATE(r.closing_date, '%Y-%m-%d') &gt;= #{closingStart}
+        </if>
+        <if test="closingEnd != null">
+            AND STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{closingEnd}
+        </if>
+    </select>
+
+    <select id="getReceivableByDateRange" resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        SELECT
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.TARGET_YEAR_AND_MONTH AS targetYearAndMonth,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        FROM
+        basic_v2_accounts_receivable_and_payable r
+        LEFT JOIN basic_v2_company_management c ON r.company_id = c.company_id
+        WHERE
+        r.BUY_AND_SELL_TYPE = 1
+        AND c.sale_or_procurement = 1
+        AND r.active_flg = 1
+        AND c.active_flg = 1
+        <if test="expectedStart != null">
+            AND r.expected_date_of_payment &gt;= #{expectedStart}
+        </if>
+        <if test="expectedEnd != null">
+            AND r.expected_date_of_payment &lt;= #{expectedEnd}
+        </if>
+        <if test="closingStart != null">
+            AND STR_TO_DATE(r.closing_date, '%Y-%m-%d') &gt;= #{closingStart}
+        </if>
+        <if test="closingEnd != null">
+            AND STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{closingEnd}
+        </if>
+    </select>
+
+
+
+
+    <select id="getReceivableByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        SELECT
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.TARGET_YEAR_AND_MONTH AS targetYearAndMonth,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        FROM basic_v2_accounts_receivable_and_payable r
+        LEFT JOIN basic_v2_company_management c
+        ON r.company_id = c.company_id
+        AND c.sale_or_procurement = 1
+        AND c.active_flg = 1
+        WHERE r.BUY_AND_SELL_TYPE = 1
+        AND r.active_flg = 1
+    </select>
+
+
+    <select id="getPayableByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        SELECT
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        FROM basic_v2_accounts_receivable_and_payable r
+        LEFT JOIN basic_v2_company_management c
+        ON r.company_id = c.company_id
+        AND c.sale_or_procurement = 2
+        AND c.active_flg = 1
+        WHERE r.BUY_AND_SELL_TYPE = 2
+        AND r.active_flg = 1
+        AND r.company_id != 1
+
+    </select>
+
+    <select id="getReceivableByLeft1ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+    </select>
+
+    <select id="getPayableByLeft1ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+    </select>
+
+    <select id="getReceivableByLeft2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+    </select>
+
+    <select id="getPayableByLeft2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+    </select>
+
+    <select id="getReceivableByLeft1AndRight1ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        r.expected_date_of_payment &lt;= #{right1}
+    </select>
+
+    <select id="getReceivableByLeft2AndRight2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{right2}
+    </select>
+
+    <select id="getPayableByLeft1AndRight1ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        r.expected_date_of_payment &lt;= #{right1}
+    </select>
+
+    <select id="getPayableByLeft2AndRight2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{right2}
+    </select>
+
+    <select id="getReceivableByLeft1AndLeft2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+    </select>
+
+    <select id="getPayableByLeft1AndLeft2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+    </select>
+
+
+
+    <select id="getReceivableByLeft1AndLeft2AndRight1ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        r.expected_date_of_payment &lt;= #{right1}
+    </select>
+
+    <select id="getPayableByLeft1AndLeft2AndRight1ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        r.expected_date_of_payment &lt;= #{right1}
+    </select>
+
+    <select id="getReceivableByLeft1AndLeft2AndRight2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{right2}
+    </select>
+
+    <select id="getPayableByLeft1AndLeft2AndRight2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 2
+        and
+        c.sale_or_procurement = 2
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{right2}
+    </select>
+
+
+    <select id="getReceivableByLeft1AndLeft2AndRight1AndRight2ByPageHelper"
+            resultType="ucl.group.excelSystem.api.db.pojo.vo.ReceivableAndPayableVO">
+        select
+        r.ACCOUNTS_RECEIVABLE_AND_PAYABLE_ID AS accountsReceivableAndPayableId,
+        r.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation,
+        r.closing_date AS closingDate,
+        r.line_total AS lineTotal,
+        r.amount_charged AS amountCharged,
+        r.deposit_amount AS depositAmount,
+        r.commission AS commission,
+        r.expected_date_of_payment AS expectedDateOfPayment,
+        r.deposit_date AS depositDate
+        from
+        basic_v2_accounts_receivable_and_payable r
+        left join basic_v2_company_management c on r.company_id = c.company_id
+        where
+        r.BUY_AND_SELL_TYPE = 1
+        and
+        c.sale_or_procurement = 1
+        and
+        r.active_flg = 1
+        and
+        c.active_flg = 1
+        and
+        r.expected_date_of_payment >= #{left1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') >= #{left2}
+        and
+        r.expected_date_of_payment &lt;= #{right1}
+        and
+        STR_TO_DATE(r.closing_date, '%Y-%m-%d') &lt;= #{right2}
+    </select>
+
+
+</mapper>

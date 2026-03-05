@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0.31
+    container_name: talent-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: talentmanagesystem
+      TZ: Asia/Tokyo
+    ports:
+      - "3306:3306"
+    volumes:
+      # 持久化数据库数据
+      - ./mysql_data:/var/lib/mysql
+      # 挂载指定的 SQL 初始化脚本
+      - ./code/talentManageSystem-api/sql/talentmanagesystem-bushuUse-202405201630.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: talent-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  backend:
+    build: 
+      context: ./code/talentManageSystem-api
+      dockerfile: Dockerfile
+    container_name: talent-api
+    ports:
+      - "8092:8092"
+    volumes:
+      - ./fileData:/opt/talent-management-system-api/fileData
+    depends_on:
+      - mysql
+      - redis
+    restart: always
+
+  frontend:
+    build:
+      context: ./code/talentManageSystem-vue
+      dockerfile: Dockerfile
+    container_name: talent-vue
+    ports:
+      - "80:80"
+    restart: always

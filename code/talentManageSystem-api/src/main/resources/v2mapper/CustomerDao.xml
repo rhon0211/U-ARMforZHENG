@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.CustomerDao">
+    <insert id="insertCustomer" parameterType="ucl.group.excelSystem.api.db.pojo.BasicCustomerEntity">
+    insert into basic_v2_customer(
+        customer_id,customer_name,del_flag,create_time,create_by,remark
+    )
+    values(
+        #{customerId},#{customerName},#{delFlag},NOW(),#{createBy},#{remark}
+    )
+    </insert>
+    <update id="updateCustomer" parameterType="ucl.group.excelSystem.api.db.pojo.BasicCustomerEntity">
+        update basic_v2_customer
+        <set>
+                customer_name=#{customerName},
+                remark=#{remark},
+            update_by=#{updateBy},
+             update_time=now()
+        </set>
+        where
+            customer_id=#{customerId}
+    </update>
+
+    <delete id="deleteCustomer">
+        update basic_v2_customer
+        set del_flag='2'
+        where customer_id in
+        <foreach collection="array" item="customerId" open="(" separator="," close=")">
+            #{customerId}
+        </foreach>
+    </delete>
+
+    <select id="selectCustomerByPageCount" resultType="java.lang.Long">
+        select count(customer_id) from basic_v2_customer where del_flag = 0;
+    </select>
+
+    <select id="selectCustomerByPage" parameterType="Map" resultType="java.util.HashMap">
+        select
+            customer_id AS customerId,
+            customer_name AS customerName,
+            remark
+        from
+            basic_v2_customer
+        where
+        del_flag = 0
+        <if test="customerName!=null">
+            and customer_name like '%${customerName}%'
+        </if>
+        LIMIT ${length} OFFSET ${start}
+    </select>
+
+
+    <!-- 基本的ResultMap -->
+    <resultMap id="BasicCustomerMap" type="ucl.group.excelSystem.api.db.pojo.BasicCustomerEntity">
+        <id column="customer_id" property="customerId"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+    <sql id="customerQuery">
+        select
+            bc.customer_id,
+            bc.customer_name
+        from basic_v2_customer bc
+    </sql>
+
+    <select id="searchById" parameterType="Long" resultMap="BasicCustomerMap">
+        <include refid="customerQuery"/>
+        where  bc.customer_id=#{customerId}
+    </select>
+</mapper>

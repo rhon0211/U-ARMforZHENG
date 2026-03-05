@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.EngineerDao">
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.BasicEngineerEntity" id="EngineerResult">
+        <id property="engineerId" column="engineer_id"/>
+        <result property="engineerName" column="engineer_name"/>
+        <result property="engineerNameJap" column="engineer_name_jap"/>
+    </resultMap>
+
+    <select id="searchByTalentId" parameterType="java.lang.Integer" resultMap="EngineerResult">
+        SELECT e.engineer_id, e.engineer_name, e.engineer_name_jap
+        FROM basic_engineer e
+        INNER JOIN related_talent_engineer rte ON e.engineer_id = rte.engineer_id
+        WHERE rte.talent_id = #{talentId}
+    </select>
+    <select id="searchAllEngineer" resultMap="EngineerResult">
+        SELECT e.engineer_id, e.engineer_name, e.engineer_name_jap
+        FROM basic_engineer e
+        where e.status='0' and e.del_flag='0'
+    </select>
+    <insert id="add" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedTalentEngineer">
+        insert into related_talent_engineer(
+        <if test="talentId != null and talentId != 0">talent_id,</if>
+        <if test="engineerId != null and engineerId != 0">engineer_id</if>
+        )values(
+        <if test="talentId != null and talentId != 0">
+            #{talentId},
+        </if>
+        <if test="engineerId != null and engineerId != 0">
+            #{engineerId}
+        </if>
+        )
+    </insert>
+    <delete id="removeRelated" parameterType="Integer">
+        delete from related_talent_engineer
+        where talent_id=#{talentId}
+    </delete>
+</mapper>

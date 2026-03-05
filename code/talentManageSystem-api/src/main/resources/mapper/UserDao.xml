@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.UserDao">
+
+    <select id="searchUserPermissions" parameterType="int" resultType="String">
+        SELECT bp.permission_name
+        FROM basic_permission bp
+        JOIN related_usertype_permission rup
+        ON bp.permission_code = rup.permission_code
+        JOIN basic_user bu
+        ON bu.`type` = rup.user_type
+        WHERE bu.user_id = ${userId}
+    </select>
+
+    <select id="login" parameterType="map" resultType="ucl.group.talentManageSystem.api.db.pojo.UserEntity">
+        SELECT user_id, name
+        FROM basic_user
+        WHERE email = #{email}
+        AND password = #{password}
+        <if test="systemCode == 0">
+            AND type &lt;= 3
+        </if>
+        <if test="systemCode == 1">
+            AND type >= 4
+        </if>
+        limit 1
+    </select>
+    <select id="judgeExist" parameterType="map" resultType="int">
+        SELECT count(*)
+        FROM basic_user bu
+        WHERE email = #{email} and del_flag='0'
+        <if test="systemCode == 0">
+            AND bu.type &lt;= 3
+        </if>
+        <if test="systemCode == 1">
+            AND bu.type >= 4
+        </if>
+        limit 1
+    </select>
+
+
+</mapper>

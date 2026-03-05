@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.ProjectInfoDao">
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.BasicProjectInfoEntity" id="ProjectInfoResult">
+        <id property="projectId" column="project_id"/>
+        <result property="name" column="name"/>
+        <result property="appointStartTime" column="appoint_start_time"/>
+        <result property="appointEndTime" column="appoint_end_time"/>
+        <result property="appointEvalution" column="appoint_evalution"/>
+    </resultMap>
+
+    <select id="searchByTalentId" parameterType="java.lang.Integer" resultMap="ProjectInfoResult">
+        SELECT p.project_id,p.name,p.appoint_start_time,p.appoint_end_time,p.appoint_evalution
+        FROM basic_project_info p
+        INNER JOIN related_talent_project tp ON tp.project_id = p.project_id
+        WHERE tp.talent_id=#{talentId} and status = '0' AND del_flag = '0'
+    </select>
+    <insert id="add" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicProjectInfoEntity"
+            useGeneratedKeys="true"
+            keyProperty="projectId">
+        insert into basic_project_info(
+        <if test="projectId != null and projectId != 0">project_id,</if>
+        <if test="name != null ">name,</if>
+        <if test="appointStartTime != null ">appoint_start_time,</if>
+        <if test="appointEndTime != null ">appoint_end_time,</if>
+        <if test="appointEvalution != null ">appoint_evalution,</if>
+        <if test="createBy != null and createBy != ''">created_by,</if>
+        <if test="status != null ">status,</if>
+        <if test="remark != null ">remark,</if>
+        created_time
+        )values(
+        <if test="projectId != null and projectId != 0">#{projectId},</if>
+        <if test="name != null">#{name},</if>
+        <if test="appointStartTime != null ">#{appointStartTime,jdbcType=DATE},</if>
+        <if test="appointEndTime != null ">#{appointEndTime,jdbcType=DATE},</if>
+        <if test="appointEvalution != null">#{appointEvalution},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        <if test="status != null ">#{status},</if>
+        <if test="remark != null ">#{remark},</if>
+        sysdate()
+        )
+    </insert>
+    <update id="edit" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicProjectInfoEntity">
+        update basic_project_info
+        <set>
+            <if test="name != null ">name=#{name},</if>
+            appoint_start_time=#{appointStartTime,jdbcType=DATE},
+            appoint_end_time=#{appointEndTime,jdbcType=DATE},
+            <if test="appointEvalution != null ">appoint_evalution=#{appointEvalution},</if>
+            <if test="status != null ">status=#{status},</if>
+            <if test="remark != null ">remark=#{remark},</if>
+            updated_time = sysdate()
+        </set>
+        where project_id  #{projectId}
+    </update>
+    <delete id="remove" parameterType="int">
+        update basic_project_info set del_flag = '2' where project_id in
+        <foreach collection="array" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </delete>
+
+    <insert id="addRelated" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedTalentProject">
+        insert into related_talent_project(
+        talent_id,project_id)
+        values(
+        #{talentId},#{projectId})
+    </insert>
+    <delete id="removeRelated" parameterType="Integer">
+        delete from related_talent_project
+        where project_id=#{projectId}
+    </delete>
+</mapper>

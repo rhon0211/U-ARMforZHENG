@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.LaborManageDao">
+    <insert id="insertLaborManage">
+        INSERT INTO basic_v2_labor_management
+        (
+        staff_id,
+        labor_status,
+        time,
+        staff_name_kanji,
+        base_salary,
+        position_allowance,
+        overtime_allowance,
+        other_allowances,
+        advance_payment,
+        commuting_expense,
+        taxable_payment_total,
+        health_insurance_fee,
+        nursing_insurance_fee,
+        welfare_pension_insurance,
+        employment_insurance_fee,
+        other_labor_expenses,
+        total_labor_expenses,
+        comment
+        ) VALUES
+        (
+        #{staffId},
+        #{laborStatus},
+        #{time},
+        #{staffNameKanji},
+        #{baseSalary},
+        #{positionAllowance},
+        #{overtimeAllowance},
+        #{otherAllowances},
+        #{advancePayment},
+        #{commutingExpense},
+        #{taxablePaymentTotal},
+        #{healthInsuranceFee},
+        #{nursingInsuranceFee},
+        #{welfarePensionInsurance},
+        #{employmentInsuranceFee},
+        #{otherLaborExpenses},
+        #{totalLaborExpenses},
+        #{comment}
+        )
+    </insert>
+
+
+        <!-- 查询UCL员工列表 -->
+    <select id="getUCLStaffWithNamesByPage" resultType="map">
+        SELECT
+        s.staff_id AS staffId,
+        s.staff_name_kanji AS staffNameKanji,
+        DATE_FORMAT(s.operation_end_date, '%Y-%m') AS operationEndMonth,
+        DATE_FORMAT(s.operation_start_date, '%Y-%m') AS operationStartMonth
+        FROM basic_v2_company_staff s
+        JOIN basic_v2_company_management c
+        ON s.company_id = c.company_id
+        WHERE s.active_flg IN (0, 1)
+        AND c.company_abbreviation = 'UCL'
+<!--        AND (-->
+<!--        s.operation_end_date IS NULL-->
+<!--        OR DATE_FORMAT(s.operation_end_date, '%Y-%m-01') >= STR_TO_DATE(CONCAT(#{time}, '-01'), '%Y-%m-%d')-->
+<!--        )-->
+    </select>
+
+
+
+
+
+
+
+    <!-- 根据时间和员工ID列表查询劳务管理记录 -->
+        <select id="getLaborManageByTimeAndStaffIds" resultType="ucl.group.excelSystem.api.db.pojo.vo.LaborManageVO">
+            SELECT id,staff_id, staff_name_kanji, time, labor_status,id,base_salary,position_allowance,overtime_allowance,other_allowances,advance_payment,commuting_expense,taxable_payment_total,health_insurance_fee,nursing_insurance_fee,welfare_pension_insurance,employment_insurance_fee,other_labor_expenses,total_labor_expenses
+            FROM  basic_v2_labor_management lm
+            WHERE time = #{time}
+            AND staff_id IN
+            <foreach collection="staffIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </select>
+
+        <!-- 批量插入新的劳务记录 -->
+        <insert id="batchInsertLaborManage" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="id">
+            INSERT INTO  basic_v2_labor_management  (staff_id, staff_name_kanji, time, labor_status,id,base_salary,position_allowance,overtime_allowance,other_allowances,advance_payment,commuting_expense,taxable_payment_total,health_insurance_fee,nursing_insurance_fee,welfare_pension_insurance,employment_insurance_fee,other_labor_expenses,total_labor_expenses)
+            VALUES
+            <foreach collection="list" item="item" separator=",">
+                (#{item.staffId}, #{item.staffNameKanji}, #{item.time},#{item.laborStatus},#{item.id},#{item.baseSalary},#{item.positionAllowance},#{item.overtimeAllowance},#{item.otherAllowances},#{item.advancePayment},#{item.commutingExpense},#{item.taxablePaymentTotal},#{item.healthInsuranceFee},#{item.nursingInsuranceFee},#{item.welfarePensionInsurance},#{item.employmentInsuranceFee},#{item.otherLaborExpenses},#{item.totalLaborExpenses})
+            </foreach>
+        </insert>
+
+        <!-- 获取指定时间的总记录数 -->
+        <select id="getTotalLaborManageCount" resultType="long">
+            SELECT COUNT(*) FROM  basic_v2_labor_management lm WHERE time = #{time}
+        </select>
+
+
+
+    <!-- 查询UCL公司的员工ID和姓名 -->
+    <select id="getUCLStaffWithNames" resultType="map">
+        SELECT s.staff_id AS staffId, s.staff_name_kanji AS staffNameKanji
+        FROM basic_v2_company_staff s
+        JOIN basic_v2_company_management c ON s.company_id = c.company_id
+        WHERE s.active_flg IN (0, 1)
+        AND c.company_abbreviation = 'UCL';
+    </select>
+
+    <!-- 查询已有的劳务管理数据 -->
+    <select id="getLaborManageByStaffIdsAndTime" resultType="ucl.group.excelSystem.api.db.pojo.vo.LaborManageVO">
+        SELECT * FROM basic_v2_labor_management
+        WHERE staff_id IN
+        <foreach item="item" index="index" collection="staffIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND time = #{time};
+    </select>
+
+
+    <!-- 分页查询 -->
+    <select id="selectLaborManageByPage" resultType="ucl.group.excelSystem.api.db.pojo.vo.LaborManageVO">
+        SELECT
+        lm.id AS id,
+        lm.staff_id AS staffId,
+        lm.labor_status AS laborStatus,
+        lm.time AS time,
+        lm.staff_name_kanji AS staffNameKanji, <!-- 从 lm 表获取员工名 -->
+        lm.base_salary AS baseSalary,
+        lm.position_allowance AS positionAllowance,
+        lm.overtime_allowance AS overtimeAllowance,
+        lm.other_allowances AS otherAllowances,
+        lm.advance_payment AS advancePayment,
+        lm.commuting_expense AS commutingExpense,
+        lm.taxable_payment_total AS taxablePaymentTotal,
+        lm.health_insurance_fee AS healthInsuranceFee,
+        lm.nursing_insurance_fee AS nursingInsuranceFee,
+        lm.welfare_pension_insurance AS welfarePensionInsurance,
+        lm.employment_insurance_fee AS employmentInsuranceFee,
+        lm.other_labor_expenses AS otherLaborExpenses,
+        lm.total_labor_expenses AS totalLaborExpenses,
+        lm.comment AS comment
+        FROM basic_v2_labor_management lm
+        <where>
+            <!-- 动态时间条件 -->
+            <if test="time != null and time != ''">
+                AND lm.time = #{time}
+            </if>
+        </where>
+        ORDER BY lm.time DESC, lm.staff_id ASC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+
+    <!-- 查询总记录数（条件与分页查询一致） -->
+    <select id="countLaborManage" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM basic_v2_labor_management
+        <where>
+            <if test="time != null">
+                time = #{time}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID查询单条数据 -->
+    <select id="getLaborById" resultType="ucl.group.excelSystem.api.db.pojo.vo.LaborManageVO">
+        SELECT
+        basic_v2_labor_management.id AS id,
+        basic_v2_labor_management.staff_id AS staffId,
+        basic_v2_labor_management.labor_status AS laborStatus,
+        basic_v2_labor_management.time AS time,
+        basic_v2_labor_management.staff_name_kanji AS staffNameKanji, -- 从 basic_v2_labor_management 表获取员工名
+        basic_v2_labor_management.base_salary AS baseSalary,
+        basic_v2_labor_management.position_allowance AS positionAllowance,
+        basic_v2_labor_management.overtime_allowance AS overtimeAllowance,
+        basic_v2_labor_management.other_allowances AS otherAllowances,
+        basic_v2_labor_management.advance_payment AS advancePayment,
+        basic_v2_labor_management.commuting_expense AS commutingExpense,
+        basic_v2_labor_management.taxable_payment_total AS taxablePaymentTotal,
+        basic_v2_labor_management.health_insurance_fee AS healthInsuranceFee,
+        basic_v2_labor_management.nursing_insurance_fee AS nursingInsuranceFee,
+        basic_v2_labor_management.welfare_pension_insurance AS welfarePensionInsurance,
+        basic_v2_labor_management.employment_insurance_fee AS employmentInsuranceFee,
+        basic_v2_labor_management.other_labor_expenses AS otherLaborExpenses,
+        basic_v2_labor_management.total_labor_expenses AS totalLaborExpenses,
+        basic_v2_labor_management.comment AS comment
+        FROM basic_v2_labor_management
+        WHERE basic_v2_labor_management.id = #{id}
+    </select>
+
+    <select id="isExist" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM basic_v2_labor_management
+        WHERE id = #{id}
+    </select>
+    <select id="getLaborByIdAndTime" resultType="ucl.group.excelSystem.api.db.pojo.vo.LaborManageVO">
+        SELECT
+        id AS id,
+        staff_id AS staffId,
+        labor_status AS laborStatus,
+        time AS time,
+        staff_name_kanji AS staffNameKanji,
+        base_salary AS baseSalary,
+        position_allowance AS positionAllowance,
+        overtime_allowance AS overtimeAllowance,
+        other_allowances AS otherAllowances,
+        advance_payment AS advancePayment,
+        commuting_expense AS commutingExpense,
+        taxable_payment_total AS taxablePaymentTotal,
+        health_insurance_fee AS healthInsuranceFee,
+        nursing_insurance_fee AS nursingInsuranceFee,
+        welfare_pension_insurance AS welfarePensionInsurance,
+        employment_insurance_fee AS employmentInsuranceFee,
+        other_labor_expenses AS otherLaborExpenses,
+        total_labor_expenses AS totalLaborExpenses,
+        comment AS comment
+        FROM basic_v2_labor_management
+        WHERE
+        staff_id = #{id}
+        AND
+        time = #{time}
+    </select>
+    <select id="getLaborStatusByStaffIds" resultType="java.lang.Integer">
+        SELECT labor_status AS laborStatus
+        FROM basic_v2_labor_management
+        WHERE staff_id IN
+        <foreach collection="staffIds" item="staffId" open="(" separator="," close=")">
+            #{staffId}
+        </foreach>
+        AND time = #{time}
+    </select>
+
+
+    <!-- 更新劳务状态 -->
+    <update id="saveStatusBatch">
+        UPDATE basic_v2_labor_management
+        SET labor_status = #{laborStatus}
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+
+    <!-- 动态更新劳务数据 -->
+    <update id="batchUpdate">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE basic_v2_labor_management
+            <set>
+                <if test="item.laborStatus != null">labor_status = #{item.laborStatus},</if>
+                <if test="item.baseSalary != null">base_salary = #{item.baseSalary},</if>
+                <if test="item.positionAllowance != null">position_allowance = #{item.positionAllowance},</if>
+                <if test="item.overtimeAllowance != null">overtime_allowance = #{item.overtimeAllowance},</if>
+                <if test="item.otherAllowances != null">other_allowances = #{item.otherAllowances},</if>
+                <if test="item.advancePayment != null">advance_payment = #{item.advancePayment},</if>
+                <if test="item.commutingExpense != null">commuting_expense = #{item.commutingExpense},</if>
+                <if test="item.taxablePaymentTotal != null">taxable_payment_total = #{item.taxablePaymentTotal},</if>
+                <if test="item.healthInsuranceFee != null">health_insurance_fee = #{item.healthInsuranceFee},</if>
+                <if test="item.nursingInsuranceFee != null">nursing_insurance_fee = #{item.nursingInsuranceFee},</if>
+                <if test="item.welfarePensionInsurance != null">welfare_pension_insurance = #{item.welfarePensionInsurance},</if>
+                <if test="item.employmentInsuranceFee != null">employment_insurance_fee = #{item.employmentInsuranceFee},</if>
+                <if test="item.otherLaborExpenses != null">other_labor_expenses = #{item.otherLaborExpenses},</if>
+                <if test="item.totalLaborExpenses != null">total_labor_expenses = #{item.totalLaborExpenses},</if>
+            </set>
+            WHERE id = #{item.id}
+        </foreach>
+    </update>
+    <update id="updateLaborManage">
+        UPDATE basic_v2_labor_management
+        SET
+        labor_status = #{laborStatus},
+        base_salary = #{baseSalary},
+        position_allowance = #{positionAllowance},
+        overtime_allowance = #{overtimeAllowance},
+        other_allowances = #{otherAllowances},
+        advance_payment = #{advancePayment},
+        commuting_expense = #{commutingExpense},
+        taxable_payment_total = #{taxablePaymentTotal},
+        health_insurance_fee = #{healthInsuranceFee},
+        nursing_insurance_fee = #{nursingInsuranceFee},
+        welfare_pension_insurance = #{welfarePensionInsurance},
+        employment_insurance_fee = #{employmentInsuranceFee},
+        other_labor_expenses = #{otherLaborExpenses},
+        total_labor_expenses = #{totalLaborExpenses},
+        comment = #{comment}
+        WHERE
+        id = #{id}
+        AND
+        time = #{time}
+    </update>
+<select id="getLaborManageByTimeRangeAndStaffId" resultType="ucl.group.excelSystem.api.db.pojo.vo.LaborManageVO">
+    SELECT *
+    FROM basic_v2_labor_management
+    WHERE staff_id = #{staffId}
+    AND time IN
+    <foreach collection="months" item="month" open="(" separator="," close=")">
+        #{month}
+    </foreach>
+</select>
+    <update id="updateLaborBatch">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE basic_v2_labor_management
+            SET
+            labor_status = #{item.laborStatus},
+            base_salary = #{item.baseSalary},
+            position_allowance = #{item.positionAllowance},
+            other_allowances = #{item.otherAllowances},
+            commuting_expense = #{item.commutingExpense},
+            taxable_payment_total = #{item.taxablePaymentTotal},
+            health_insurance_fee = #{item.healthInsuranceFee},
+            nursing_insurance_fee = #{item.nursingInsuranceFee},
+            welfare_pension_insurance = #{item.welfarePensionInsurance},
+            employment_insurance_fee = #{item.employmentInsuranceFee},
+            other_labor_expenses = #{item.otherLaborExpenses},
+            total_labor_expenses = #{item.totalLaborExpenses}
+            WHERE id = #{item.id}
+        </foreach>
+    </update>
+    <select id="existsLaborRecord" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM basic_v2_labor_management
+        WHERE staff_id = #{staffId}
+        AND time = #{time}
+    </select>
+</mapper>

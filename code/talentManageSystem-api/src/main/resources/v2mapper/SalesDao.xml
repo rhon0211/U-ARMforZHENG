@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ucl.group.excelSystem.api.db.dao.SalesDao">
+
+    <!-- 获取在指定结束时间范围内的项目ID -->
+    <select id="getProjectIdByEndDate" resultType="java.lang.Integer">
+        SELECT project_id
+        FROM basic_v2_project_manage
+        WHERE project_end_date BETWEEN #{startDate} AND #{endDate}
+        AND active_flg = 1
+    </select>
+    <!--  获取在指定预定结束时间范围内的项目ID -->
+    <select id="getProjectIdByScheduledEndDate" resultType="java.lang.Integer">
+        SELECT project_id
+        FROM basic_v2_project_manage
+        WHERE project_scheduled_end_date BETWEEN #{startDate} AND #{endDate}
+        AND active_flg = 1
+    </select>
+
+    <!--  获取销售数据列表 -->
+    <select id="getData" resultType="ucl.group.excelSystem.api.db.pojo.vo.SalesVO">
+        SELECT
+        t.project_id AS projectId,
+        t.applicable_month AS applicableMonth,
+        c.company_abbreviation AS companyAbbreviation,
+        d.department_abbreviation AS departmentAbbreviation,
+        d.principal_name AS principalName,
+        p.project_name_abbreviation AS projectNameAbbreviation,
+        t.trading_status AS tradingStatus,
+        t.total_sales_amount AS totalSalesAmount,
+        t.total_amount_raised AS totalAmountRaised
+        FROM basic_v2_trading_management t
+        JOIN basic_v2_project_manage p ON t.project_id = p.project_id
+        JOIN basic_v2_company_management c ON t.sales_company_id = c.company_id
+        JOIN basic_v2_department_management d ON t.department_id = d.department_id
+        WHERE t.project_id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND applicable_month BETWEEN #{startDate} AND #{endDate}
+        AND t.active_flg = 1
+    </select>
+
+    <!--  获取某项目的参与员工ID列表 -->
+    <select id="getStaffIds" resultType="java.lang.Integer">
+        SELECT staff_id
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+
+    <!--  获取参与员工的人工成本合计 -->
+    <select id="getTotalLaborExpenses" resultType="java.math.BigDecimal">
+        SELECT SUM(total_labor_expenses)
+        FROM basic_v2_labor_management
+        WHERE staff_id IN
+        <foreach collection="staffIds" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND active_flg = 1
+    </select>
+
+    <!--  获取某项目总销售额 -->
+    <select id="getSalesAmount" resultType="java.math.BigDecimal">
+        SELECT SUM(sales_amount)
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+
+    <!--  获取某项目总调达额 -->
+    <select id="getAmountRaised" resultType="java.math.BigDecimal">
+        SELECT SUM(amount_raised)
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+
+    <!--  获取所有项目基础信息（用于过滤） -->
+    <select id="getProjects" resultType="java.util.HashMap">
+        SELECT
+        project_id AS projectId,
+        project_start_date AS projectStartDate,
+        project_end_date AS projectEndDate,
+        project_scheduled_end_date AS projectScheduledEndDate
+        FROM basic_v2_project_manage
+        WHERE active_flg = 1
+    </select>
+
+    <!--  获取项目中已退场员工（实际或计划退场时间早于指定日期） -->
+    <select id="getRetiredStaff" resultType="java.lang.String">
+        SELECT staff_id
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+        AND (
+        (actual_exit_date IS NOT NULL AND actual_exit_date &lt; #{monthStart})
+        OR (planned_exit_date IS NOT NULL AND planned_exit_date &lt; #{monthStart})
+        )
+    </select>
+
+    <!--  获取每位员工在指定月的销售和调达金额 -->
+    <select id="getStaffFinancials" resultType="java.util.HashMap">
+        SELECT
+        staff_id,
+        sales_amount,
+        amount_raised
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+    <select id="getStaffFinancialsByMonth" resultType="java.util.HashMap">
+        SELECT
+        staff_id,
+        sales_amount,
+        amount_raised
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+        AND (
+        (actual_exit_date IS NOT NULL AND actual_exit_date &lt; #{monthStart})
+        OR (planned_exit_date IS NOT NULL AND planned_exit_date &lt; #{monthStart})
+        )
+    </select>
+    <select id="getProjectEndDate" resultType="java.sql.Date">
+        SELECT project_end_date
+        FROM basic_v2_project_manage
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+
+    <select id="getProjectScheduledEndDate" resultType="java.sql.Date">
+        SELECT project_scheduled_end_date
+        FROM basic_v2_project_manage
+        WHERE project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+
+</mapper>
+

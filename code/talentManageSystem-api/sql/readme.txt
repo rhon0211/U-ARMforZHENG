@@ -1,0 +1,2 @@
+先恢复talentmanagesystem-bushuUse-202405201630的sql文件，导入人才管理系统的代码
+再打开sql编辑器，复制数据库sql.docx，并粘贴执行

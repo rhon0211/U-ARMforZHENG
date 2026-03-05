@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ucl.group.excelSystem.api.db.dao.Userv2ManageDao">
+
+    <resultMap id="userResultMap" type="ucl.group.excelSystem.api.db.pojo.vo.Userv2VO">
+        <id property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="email" column="email"/>
+        <result property="type" column="type"/>
+        <result property="code" column="code"/>
+        <result property="phone" column="phone"/>
+        <result property="active" column="status"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <!-- 分页查询用户列表 -->
+    <select id="selectUserByPage" parameterType="map" resultType="ucl.group.excelSystem.api.db.pojo.vo.Userv2VO">
+        SELECT
+        user_id, name, email, type, code, phone, status, remark
+        FROM basic_user
+        WHERE
+        type = #{type}
+        <if test=" name != null">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        LIMIT #{start}, #{length}
+    </select>
+
+    <!-- 获取分页总记录数 -->
+    <select id="selectUserByPageCount" parameterType="map" resultType="long">
+        SELECT
+        COUNT(*)
+        FROM basic_user
+        WHERE
+        type = #{type}
+        <if test="name != null">
+            AND name LIKE #{name}
+        </if>
+    </select>
+
+    <!-- 新增用户 -->
+    <insert id="insertUser" parameterType="ucl.group.excelSystem.api.db.pojo.Userv2Entity">
+        INSERT INTO basic_user (name, email, type, code, phone, status, remark)
+        VALUES (#{name}, #{email}, #{type}, #{code}, #{phone}, #{active}, #{remark})
+    </insert>
+
+    <!-- 更新用户信息 -->
+    <update id="updateUser" parameterType="ucl.group.excelSystem.api.db.pojo.Userv2Entity">
+        UPDATE basic_user
+        SET
+        name = #{name},
+        email = #{email},
+        type = #{type},
+        code = #{code},
+        phone = #{phone},
+        status = #{active},
+        remark = #{remark}
+        WHERE
+        user_id = #{userId}
+    </update>
+
+    <!-- 批量删除用户 -->
+    <delete id="deleteUsers" parameterType="list">
+        DELETE FROM basic_user
+        WHERE user_id IN
+        <foreach collection="list" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <update id="deleteUser" parameterType="Long">
+        update basic_user
+        set del_flag = 1
+        where user_id = #{userId}
+    </update>
+
+    <!-- 修改用户密码 -->
+    <update id="updatePassword" parameterType="map">
+        UPDATE basic_user
+        SET password = #{newPassword}
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 按 ID 查询用户详情 -->
+    <select id="selectUserById" parameterType="long" resultType="ucl.group.excelSystem.api.db.pojo.Userv2Entity">
+        SELECT
+        user_id, name, email, type, code, phone, status, remark
+        FROM basic_user
+        WHERE
+        user_id = #{userId}
+    </select>
+
+    <!-- 校验用户密码 -->
+    <select id="isPasswordCorrect" parameterType="map" resultType="boolean">
+        SELECT
+        CASE WHEN password = #{password} THEN true ELSE false END
+        FROM basic_user
+        WHERE
+        user_id = #{userId}
+    </select>
+    <select id="searchById" resultType="ucl.group.excelSystem.api.db.pojo.Userv2Entity">
+        SELECT
+        user_id, name, email, type, code, phone, status, remark
+        FROM basic_user
+        WHERE
+        user_id = #{userId}
+    </select>
+    <select id="checkPassword" resultType="java.lang.Boolean">
+        SELECT
+        CASE WHEN password = #{password} THEN true ELSE false END
+        FROM basic_user
+        WHERE
+        user_id = #{userId}
+    </select>
+
+</mapper>

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.ProjectManagementDao">
+    <!--<select id="selectProjectsByProjectId" resultType="java.util.HashMap">-->
+    <!--    select-->
+    <!--    project_id AS projectId,-->
+    <!--    project_name AS projectName-->
+    <!--    from basic_v2_project_manage-->
+    <!--    where-->
+    <!--    active_flg = 1-->
+    <!--    and-->
+    <!--    department_id = #{projectId}-->
+    <!--</select>-->
+    <select id="selectProjectsByDepartmentId" resultType="java.util.HashMap">
+            select
+            project_id AS projectId,
+            project_name AS projectName,
+            project_name_abbreviation AS projectNameAbbreviation
+            from basic_v2_project_manage
+            where
+            active_flg = 1
+            and
+            department_id = #{departmentId}
+    </select>
+    <select id="getStaffNumByProjectId" resultType="java.lang.Integer">
+        select
+        count(staff_id)
+        from basic_v2_project_detail
+        where
+        project_id = #{projectId}
+        and
+        active_flg = 1
+        and
+        entry_date &lt;= #{lastDayOfMonth}
+        and (
+        (actual_exit_date IS NOT NULL AND actual_exit_date >= #{queryMonth})
+        OR (actual_exit_date IS NULL AND (planned_exit_date IS NULL OR planned_exit_date >= #{queryMonth}))
+        )
+    </select>
+    <select id="getStaffIdsByProjectId" resultType="java.lang.Integer">
+        select
+        pd.staff_id AS staffId
+        from basic_v2_project_detail pd
+        join basic_v2_company_management c
+        on pd.company_id = c.company_id
+        where
+        pd.project_id = #{projectId}
+        and
+        pd.active_flg = 1
+        and
+        LOWER(c.company_abbreviation) = 'ucl'
+    </select>
+    <select id="getProjects" resultType="java.util.HashMap">
+        SELECT
+        p.project_id AS projectId,
+        p.project_name AS projectName,
+        c.total_sales_amount AS totalSalesAmount,
+        c.previous_month_actuarial_balance AS previousMonthActuarialBalance,
+        c.trading_status AS tradingStatus
+        FROM basic_v2_project_manage p
+        INNER JOIN basic_v2_clearing_balance c
+        ON p.project_id = c.project_id
+        WHERE p.active_flg = 1
+        AND p.project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </select>
+    <select id="getProjectIds" resultType="java.lang.Integer">
+        SELECT project_id
+        FROM basic_v2_project_manage
+        WHERE project_start_date &lt;= #{date}
+        AND (
+        (project_end_date IS NOT NULL AND project_end_date >= #{date})
+        OR project_end_date IS NULL
+        )
+        AND (
+        project_end_date IS NOT NULL
+        OR (project_scheduled_end_date IS NULL OR project_scheduled_end_date >= #{date})
+        )
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getSalesCompanyId" resultType="java.lang.Integer">
+        SELECT sales_company_id
+        FROM basic_v2_project_manage
+        WHERE project_id = #{projectId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getDepartmentId" resultType="java.lang.Integer">
+        SELECT department_id
+        FROM basic_v2_project_manage
+        WHERE project_id = #{projectId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getSumSalesAmount" resultType="java.math.BigDecimal">
+        SELECT SUM(sales_amount)
+        FROM basic_v2_project_detail
+        WHERE project_id = #{projectId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getDailyOperatingHoursByProjectId" resultType="java.lang.Double">
+        SELECT
+        daily_operating_hours
+        FROM basic_v2_project_manage
+        WHERE
+        project_id = #{projectId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getWorkDaysByMonth" resultType="java.lang.String">
+        SELECT
+        work_days
+        FROM basic_v2_year_and_month
+        WHERE
+        month = STR_TO_DATE(CONCAT(DATE_FORMAT(#{month}, '%Y-%m'), '-01'), '%Y-%m-%d');
+    </select>
+    <select id="getSalesAmountByProjectIdAndStaffId" resultType="java.math.BigDecimal">
+        SELECT
+        sales_amount
+        FROM basic_v2_project_detail
+        WHERE
+        project_id = #{projectId}
+        AND
+        staff_id = #{staffId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getAmountRaisedByProjectIdAndStaffId" resultType="java.math.BigDecimal">
+        SELECT
+        amount_raised
+        FROM basic_v2_project_detail
+        WHERE
+        project_id = #{projectId}
+        AND
+        staff_id = #{staffId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getTotalSalesAmountByProjectId" resultType="java.math.BigDecimal">
+        SELECT
+        SUM(COALESCE(pd.sales_amount, 0))
+        FROM basic_v2_project_detail pd
+        join basic_v2_company_staff s
+        on pd.staff_id = s.staff_id
+        join basic_v2_company_management c
+        on s.company_id = c.company_id
+        WHERE
+        pd.project_id = #{projectId}
+        AND
+        pd.active_flg = 1;
+    </select>
+    <select id="getTheMonthOfResidualAmount" resultType="java.math.BigDecimal">
+        SELECT
+        the_month_of_residual_amount
+        FROM basic_v2_clearing_balance
+        WHERE
+        project_id = #{projectId}
+        AND
+        DATEDIFF(target_month, #{preMonth}) >= 0
+        AND
+        DATEDIFF(target_month, #{preMonth}) &lt; 31
+        And
+        active_flg = 1;
+    </select>
+
+    <select id="getClosingDate" resultType="java.lang.String">
+        SELECT
+        closing_date
+        FROM basic_v2_company_management
+        WHERE
+        company_id = #{salesCompanyId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getSalesIncrementAndDecrementUnitPriceHour" resultType="java.util.HashMap">
+        SELECT
+        sales_increment_unit_price_hour AS salesIncrementUnitPriceHour,
+        sales_decrement_unit_price_hour AS salesDecrementUnitPriceHour
+        FROM basic_v2_project_detail
+        WHERE
+        project_id = #{projectId}
+        AND
+        staff_id = #{staffId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getAmountRaisedUpperAndLowerLimit" resultType="java.util.HashMap">
+        SELECT
+        upper_limit AS upperLimit,
+        lower_limit AS lowerLimit
+        FROM basic_v2_project_detail
+        WHERE
+        project_id = #{projectId}
+        AND
+        staff_id = #{staffId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getProcurementIncrementAndDecrementUnitPriceHour" resultType="java.util.HashMap">
+        SELECT
+        procurement_increment_unit_price_hour AS procurementIncrementUnitPriceHour,
+        procurement_decrement_unit_price_hour AS procurementDecrementUnitPriceHour
+        FROM basic_v2_project_detail
+        WHERE
+        project_id = #{projectId}
+        AND
+        staff_id = #{staffId}
+        AND
+        active_flg = 1;
+    </select>
+    <select id="getUpperAndLowerLimit" resultType="java.util.HashMap">
+        SELECT
+        settlement_upper_limit AS settlementUpperLimit,
+        settlement_lower_limit AS settlementLowerLimit
+        FROM basic_v2_project_manage
+        WHERE
+        project_id = #{projectId}
+        AND active_flg = 1
+    </select>
+    <select id="getPreviousMonthActuarialBalance" resultType="java.math.BigDecimal">
+        SELECT
+        previous_month_actuarial_balance AS previousMonthActuarialBalance
+        FROM basic_v2_clearing_balance
+        WHERE
+        project_id = #{projectId}
+        AND
+        DATEDIFF(target_month, #{queryMonth}) >= 0
+        AND
+        DATEDIFF(target_month, #{queryMonth}) &lt; 31
+        AND
+        active_flg = 1;
+    </select>
+
+
+</mapper>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.UserManageDao">
+
+    <insert id="supadmInsertUser" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity">
+        INSERT INTO talentmanagesystem.basic_user
+        (
+        name, pseudonym, account, password, email, phone, code, `type`, status, del_flag, remark, created_by, created_time)
+        VALUES
+        (
+        COALESCE(#{name}, ''),
+        COALESCE(#{pseudonym}, ''),
+        COALESCE(#{account}, ''),
+        COALESCE(#{password}, ''),
+        COALESCE(#{email}, ''),
+        COALESCE(#{phone}, ''),
+        COALESCE(#{code}, ''),
+        COALESCE(#{type}, '3'),
+        "0", "0",
+        COALESCE(#{remark}, ''),
+        COALESCE(#{createBy}, ''),
+        NOW()
+        );
+
+    </insert>
+
+    <insert id="otherInsertUser" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity">
+        INSERT INTO talentmanagesystem.basic_user
+        (name, pseudonym, email, phone, code, `type`, status, del_flag, remark, created_by, created_time)
+        VALUES
+        (
+        COALESCE(#{name}, ''),
+        COALESCE(#{pseudonym}, ''),
+        COALESCE(#{email}, ''),
+        COALESCE(#{phone}, ''),
+        COALESCE(#{code}, ''),
+        COALESCE(#{type}, '3'),
+        "0",
+        "0",
+        COALESCE(#{remark}, ''),
+        COALESCE(#{createBy}, ''),
+        NOW()
+        );
+
+    </insert>
+
+    <select id="searchUserEmail" resultType="Hashmap">
+        SELECT
+            bu.type AS type,
+            bu.name AS name,
+            bu.email AS email
+        FROM
+            talentmanagesystem.basic_user bu
+        WHERE
+            bu.status = 0
+        AND
+            bu.del_flag = 0
+    </select>
+
+    <select id="supadmUserSearchByPage" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity" resultType="java.util.HashMap">
+        SELECT
+            bu.user_id AS userId,
+            bu.name AS name,
+            bu.pseudonym AS pseudonym,
+            bu.account AS account,
+            bu.password AS password,
+            bu.email AS email,
+            bu.phone AS phone,
+            bu.code AS code,
+            bu.`type` AS type,
+            bu.status AS status,
+            bu.del_flag AS delFlag,
+            bu.created_time AS createTime,
+            bu.created_by AS createBy,
+            bu.updated_time AS updateTime,
+            bu.updated_by AS updateBy,
+            bdd.dict_label AS typeName,
+            bdd.dict_label_jap AS typeNameJap
+        FROM
+            talentmanagesystem.basic_user bu
+        JOIN
+            talentmanagesystem.basic_dict_data bdd ON bdd.dict_value = bu.type
+        WHERE
+            bdd.dict_type = 'dict_user_type'
+        AND
+            bu.del_flag = 0
+        AND
+            bu.status = ${status}
+        AND
+             bdd.dict_value IN (1,2,3)
+        <if test="name!=null">
+            AND bu.name LIKE '%${name}%'
+        </if>
+        <if test="pseudonym!=null">
+            AND bu.pseudonym LIKE '%${pseudonym}%'
+        </if>
+        <if test="type!=null">
+            AND bu.type LIKE '%${type}%'
+        </if>
+        <if test="email!=null">
+            AND bu.email LIKE '%${email}%'
+        </if>
+    </select>
+
+    <select id="userSearchCount" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity" resultType="java.lang.Long">
+        SELECT
+            COUNT(*)
+        FROM
+            talentmanagesystem.basic_user bu
+        WHERE
+            bu.del_flag = 0
+        AND
+            bu.status = ${status}
+        <if test="name!=null">
+            AND bu.name LIKE '%${name}'
+        </if>
+        <if test="pseudonym!=null">
+            AND bu.pseudonym LIKE '%${pseudonym}'
+        </if>
+        <if test="type!=null">
+            AND bu.type LIKE '%${type}'
+        </if>
+        <if test="email!=null">
+            AND bu.email LIKE '%${email}'
+        </if>
+    </select>
+
+    <select id="searchById" parameterType="int" resultType="java.util.HashMap">
+        SELECT
+            bu.user_id AS userId,
+            bu.name AS name,
+            bu.pseudonym AS pseudonym,
+            bu.account AS account,
+            bu.password AS password,
+            bu.email AS email,
+            bu.phone AS phone,
+            bu.code AS code,
+            bu.`type` AS type
+        FROM
+            talentmanagesystem.basic_user bu
+        WHERE
+            bu.user_id = #{userId}
+    </select>
+
+    <update id="supadmUpdateUser" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity">
+        UPDATE
+        talentmanagesystem.basic_user
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="pseudonym != null">pseudonym = #{pseudonym},</if>
+            <if test="account != null">account = #{account},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="code != null">code = #{code},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="updateBy != null">updated_by = #{updateBy},</if>
+            updated_time = NOW()
+        </set>
+        WHERE
+        user_id = #{userId}
+    </update>
+
+
+    <update id="otherUpdateUser" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity">
+        UPDATE
+        talentmanagesystem.basic_user
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="pseudonym != null">pseudonym = #{pseudonym},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="code != null">code = #{code},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="updateBy != null">updated_by = #{updateBy},</if>
+            updated_time = NOW()
+        </set>
+        WHERE
+        user_id = #{userId}
+    </update>
+
+    <update id="userDeletes">
+        UPDATE
+            talentmanagesystem.basic_user
+        SET
+            del_flag = 2
+        WHERE
+            user_id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="userDisable">
+        UPDATE
+            talentmanagesystem.basic_user
+        SET
+            status = 2
+        WHERE
+            user_id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="userEnable">
+        UPDATE
+        talentmanagesystem.basic_user
+        SET
+        status = 0
+        WHERE
+        user_id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="userSelect" resultType="java.util.HashMap">
+        SELECT
+            bu.user_id AS userId,
+            bu.name AS name,
+            bu.type AS type
+        FROM
+            talentmanagesystem.basic_user bu
+        WHERE
+            bu.status = 0 AND bu.del_flag = 0
+        ORDER BY
+            bu.user_id
+    </select>
+
+    <select id="userTypeSelect" resultType="java.util.HashMap">
+        SELECT
+            bdd.dict_value AS id,
+            bdd.dict_label AS name,
+            bdd.dict_label_jap AS nameJap
+        FROM
+            talentmanagesystem.basic_dict_data bdd
+        WHERE
+            bdd.dict_data_id IN (1, 2, 3, 29)
+        ORDER BY
+            id
+    </select>
+
+    <select id="exadmUserSearchByPage" parameterType="ucl.group.talentManageSystem.api.db.pojo.UserEntity" resultType="java.util.HashMap">
+        SELECT
+        bu.user_id AS userId,
+        bu.name AS name,
+        bu.account AS account,
+        bu.password AS password,
+        bu.email AS email,
+        bu.`type` AS type,
+        bu.status AS status,
+        bu.del_flag AS delFlag,
+        bu.created_time AS createTime,
+        bu.created_by AS createBy,
+        bu.updated_time AS updateTime,
+        bu.updated_by AS updateBy,
+        bdd.dict_label AS typeName,
+        bdd.dict_label_jap AS typeNameJap
+        FROM
+        talentmanagesystem.basic_user bu
+        JOIN
+        talentmanagesystem.basic_dict_data bdd ON bdd.dict_value = bu.type
+        WHERE
+        bdd.dict_type = 'dict_user_type'
+        AND
+        bu.del_flag = 0
+        AND
+        bu.status = ${status}
+        AND
+        bdd.dict_value IN (4, 5)
+        <if test="name!=null">
+            AND bu.name LIKE '%${name}%'
+        </if>
+
+        <if test="type!=null">
+            AND bu.type LIKE '%${type}%'
+        </if>
+        <if test="email!=null">
+            AND bu.email LIKE '%${email}%'
+        </if>
+    </select>
+
+    <select id="exuserTypeSelect" resultType="java.util.HashMap">
+        SELECT
+            bdd.dict_value AS id,
+            bdd.dict_label AS name,
+            bdd.dict_label_jap AS nameJap
+        FROM
+            talentmanagesystem.basic_dict_data bdd
+        WHERE
+            bdd.dict_data_id IN (42,44)
+        ORDER BY
+            id
+    </select>
+</mapper>

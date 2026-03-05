@@ -1,0 +1,131 @@
+server:
+  port: 8092
+  servlet:
+    context-path: /talentManageSystem-api
+
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  jackson:
+    time-zone: Asia/Tokyo
+  datasource:
+    url: jdbc:mysql://talent-mysql:3306/talentmanagesystem?allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Tokyo&allowMultiQueries=true&useOldAliasMetadataBehavior=true
+    username: root
+    #    password: lxy020805.、
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,slf4j
+  #    java mail
+  mail:
+    host: mail.ucl-group.co.jp
+    port: 587
+    username: talentmanagesystem@ucl-group.co.jp
+    password: ucl20242024
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
+  default-encoding: UTF-8
+
+  #上传文件
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  redis:
+    database: 0
+    host: redis
+    port: 6379
+    #redis.conf中的auth密码
+    password:
+    jedis:
+      pool:
+        max-active: 1000
+        max-wait: -1ms
+        max-idle: 16
+        min-idle: 8
+
+  #定时器
+  quartz:
+    job-store-type: memory
+
+mybatis:
+  #  xml路径,修改为数组形式
+  mapper-locations:
+    - classpath*:mapper/*.xml
+    - classpath*:v2mapper/*.xml
+  #  映射类路径
+  type-aliases-package: ucl.group.talentManageSystem-api.api.db.pojo
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    root: info
+    com.example.hospital.api.db.dao: warn
+  pattern:
+    console: "%d{yyyy/MM/dd HH:mm:ss}  %-5level  %msg%n"
+
+#认证授权
+sa-token:
+  #  从HTTP请求头中获取key为token的属性值
+  token-name: token
+  #  有效期30days
+  timeout: 2592000
+  #  临时有效期
+  activity-timeout: -1
+  #  允许同一账号并发登录（比如ip变了，不用重新登录）
+  allow-concurrent-login: true
+  #  不允许多人登录同一账号
+  is-share: false
+  token-style: uuid
+  isReadCookie: false
+
+#minio:
+#  endpoint: http://localhost:9000
+#  access-key: root
+#  secret-key: abc123456
+file:
+  prefix: /statics
+  domain: http://192.168.1.2:8092/talentManageSystem-api
+  path: C:/Users/test/Desktop/excelSystem/fileData
+app:
+  emailSender: talentmanagesystem@ucl-group.co.jp
+
+pagehelper:
+  # 数据库方言 mysql
+  helper-dialect: mysql
+
+  # 分页参数合理化
+  # 默认是false。
+  # 启用合理化时，如果pageNum<1会查询第一页，如果pageNum>pages会查询最后一页；
+  # 禁用合理化时，如果pageNum<1或pageNum>pages会返回空数据
+  reasonable: true
+
+  # 支持通过 Mapper 接口参数来传递分页参数
+  # 默认值 false
+  support-methods-arguments: true
+
+  # 为了支持startPage(Object params)方法，增加了该参数来配置参数映射，
+  # 用于从对象中根据属性名取值
+  #  默认值为 countSql
+  params: countSql

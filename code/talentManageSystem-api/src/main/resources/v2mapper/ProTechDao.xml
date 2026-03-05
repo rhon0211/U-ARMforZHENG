@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.ProTechDao">
+
+    <insert id="insertProTech" parameterType="ucl.group.excelSystem.api.db.pojo.RelatedProjectTechnician" useGeneratedKeys="true" keyProperty="projectTechnicianId">
+        insert into related_v2_project_technician (
+            technician_id, project_id, status, c_begin_month, c_end_month,
+            stop_month, price_month, c_lower_hours, c_higher_hours,
+            c_reduct_price, c_increase_price, c_price, h_begin_month, h_end_month,
+            h_lower_hours, h_higher_hours, h_reduct_price, h_increase_price,
+            h_price, standard_hours, contract, contract_num,
+            del_flag, create_time, create_by, remark, parent_id,
+            c_real_begin_month, c_real_end_month, real_stop_month,contract_type
+        )
+        values (
+            #{technicianId}, #{projectId}, #{status}, #{cBeginMonth}, #{cEndMonth},
+            #{stopMonth}, #{priceMonth}, #{cLowerHours}, #{cHigherHours},
+            #{cReductPrice}, #{cIncreasePrice}, #{cPrice}, #{hBeginMonth}, #{hEndMonth},
+            #{hLowerHours}, #{hHigherHours}, #{hReductPrice}, #{hIncreasePrice},
+            #{hPrice}, #{standardHours}, #{contract}, #{contractNum},
+            #{delFlag}, NOW(), #{createBy}, #{remark}, #{parentId},
+            #{cRealBeginMonth}, #{cRealEndMonth}, #{realStopMonth},#{contractType}
+        )
+    </insert>
+
+    <select id="selectProTechByPageCount" parameterType="Map"  resultType="java.lang.Long">
+        select
+            count(project_technician_id)
+        from
+            related_v2_project_technician rpt
+        join
+            basic_v2_technician bt on rpt.technician_id = bt.technician_id
+        join
+            basic_v2_project bp on rpt.project_id = bp.project_id
+        join
+            basic_v2_customer bc on bp.customer_id = bc.customer_id
+        where
+            rpt.del_flag = 0
+        and
+            bt.del_flag = 0
+        and
+            bp.del_flag = 0
+        and
+            bc.del_flag = 0
+        <if test="techName!=null">
+            and bt.name like '%${techName}%'
+        </if>
+        <if test="proName!=null">
+            and bp.project_name like '%${proName}%'
+        </if>
+        <if test="custName!=null">
+            and bc.customer_name like '%${custName}%'
+        </if>
+    </select>
+
+    <!--basic_v2_partner_company表中的company_name，terms_of_payment和coop_date-->
+    <select id="selectProTechByPage" parameterType="Map" resultType="java.util.HashMap">
+        select
+        rpc.project_technician_id AS projectTechnicianId,
+        rpc.technician_id AS technicianId,
+        rpc.project_id AS projectId,
+        bc.customer_id AS customerId,
+        bt.name AS technicianName,
+        bt.picture AS picture,
+        bt.katakana AS katakana,
+        bt.roman AS roman,
+        bt.birthday AS birthday,
+        bt.representative AS representative,
+        pc.company_name AS companyName,
+        pc.terms_of_payment AS termsOfPayment,
+        pc.coop_date AS coopDate,
+        bc.customer_name AS customerName,
+        bp.project_name AS projectName,
+        bp.principal AS principal,
+        bp.principal_company AS principalCompany,
+        rpc.status AS status,
+        rpc.contract AS contract,
+        rpc.c_begin_month AS cBeginMonth,
+        rpc.c_end_month AS cEndMonth,
+        rpc.stop_month AS stopMonth,
+        rpc.price_month AS priceMonth,
+        rpc.c_lower_hours AS cLowerHours,
+        rpc.c_higher_hours AS cHigherHours,
+        rpc.c_reduct_price AS cReductPrice,
+        rpc.c_increase_price AS cIncreasePrice,
+        rpc.c_price AS cPrice,
+        rpc.h_begin_month AS hBeginMonth,
+        rpc.h_end_month AS hEndMonth,
+        rpc.h_lower_hours AS hLowerHours,
+        rpc.h_higher_hours AS hHigherHours,
+        rpc.h_reduct_price AS hReductPrice,
+        rpc.h_increase_price AS hIncreasePrice,
+        rpc.h_price AS hPrice,
+        rpc.standard_hours AS standardHours,
+        rpc.contract_num AS contractNum,
+        rpc.remark AS remark,
+        rpc.parent_id AS parentId,
+        rpc.c_real_begin_month AS cRealBeginMonth,
+        rpc.c_real_end_month AS cRealEndMonth,
+        rpc.real_stop_month AS realStopMonth,
+        rpc.contract_type AS contractType
+        from
+        related_v2_project_technician rpc
+        join
+        basic_v2_technician bt on rpc.technician_id = bt.technician_id
+        join
+        basic_v2_project bp on rpc.project_id = bp.project_id
+        join
+        basic_v2_customer bc on bp.customer_id = bc.customer_id
+        join
+        basic_v2_partner_company pc on bt.belong_company_id = pc.partner_company_id
+        where
+        rpc.del_flag = 0
+        and
+        bt.del_flag = 0
+        and
+        bp.del_flag = 0
+        and
+        bc.del_flag = 0
+        <if test="techName!=null">
+            and bt.name like '%${techName}%'
+        </if>
+        <if test="proName!=null">
+            and bp.project_name like '%${proName}%'
+        </if>
+        <if test="custName!=null">
+            and bc.customer_name like '%${custName}%'
+        </if>
+        LIMIT ${length} OFFSET ${start}
+    </select>
+
+    <select id="selectProTechForUpdateOrChange" parameterType="long" resultType="java.util.HashMap">
+        select
+        rpc.project_technician_id AS projectTechnicianId,
+        rpc.technician_id AS technicianId,
+        rpc.project_id AS projectId,
+        bc.customer_id AS customerId,
+        bt.name AS technicianName,
+        bt.picture AS picture,
+        bt.katakana AS katakana,
+        bt.roman AS roman,
+        bt.birthday AS birthday,
+        bt.representative AS representative,
+        bt.belong_company AS belongCompany,
+        bc.customer_name AS customerName,
+        bp.project_name AS projectName,
+        bp.principal AS principal,
+        bp.principal_company AS principalCompany,
+        rpc.status AS status,
+        rpc.contract AS contract,
+        rpc.c_begin_month AS cBeginMonth,
+        rpc.c_end_month AS cEndMonth,
+        rpc.stop_month AS stopMonth,
+        rpc.price_month AS priceMonth,
+        rpc.c_lower_hours AS cLowerHours,
+        rpc.c_higher_hours AS cHigherHours,
+        rpc.c_reduct_price AS cReductPrice,
+        rpc.c_increase_price AS cIncreasePrice,
+        rpc.c_price AS cPrice,
+        rpc.h_begin_month AS hBeginMonth,
+        rpc.h_end_month AS hEndMonth,
+        rpc.h_lower_hours AS hLowerHours,
+        rpc.h_higher_hours AS hHigherHours,
+        rpc.h_reduct_price AS hReductPrice,
+        rpc.h_increase_price AS hIncreasePrice,
+        rpc.h_price AS hPrice,
+        rpc.standard_hours AS standardHours,
+        rpc.contract_num AS contractNum,
+        rpc.c_real_begin_month AS cRealBeginMonth,
+        rpc.c_real_end_month AS cRealEndMonth,
+        rpc.real_stop_month AS realStopMonth,
+        rpc.remark AS remark
+        from
+        related_v2_project_technician rpc
+        join
+        basic_v2_technician bt on rpc.technician_id = bt.technician_id
+        join
+        basic_v2_project bp on rpc.project_id = bp.project_id
+        join
+        basic_v2_customer bc on bp.customer_id = bc.customer_id
+        where
+        rpc.del_flag = 0
+        and
+        bt.del_flag = 0
+        and
+        bp.del_flag = 0
+        and
+        bc.del_flag = 0
+        and
+        rpc.project_technician_id = #{proTechId};
+    </select>
+
+    <select id="selectProTechForStopMonth" parameterType="long" resultType="ucl.group.excelSystem.api.db.pojo.RelatedProjectTechnician">
+        select
+            rpc.project_technician_id AS projectTechnicianId,
+            rpc.technician_id AS technicianId,
+            rpc.project_id AS projectId,
+            rpc.status AS status,
+            rpc.contract AS contract,
+            rpc.c_begin_month AS cBeginMonth,
+            rpc.c_end_month AS cEndMonth,
+            rpc.stop_month AS stopMonth,
+            rpc.price_month AS priceMonth,
+            rpc.c_lower_hours AS cLowerHours,
+            rpc.c_higher_hours AS cHigherHours,
+            rpc.c_reduct_price AS cReductPrice,
+            rpc.c_increase_price AS cIncreasePrice,
+            rpc.c_price AS cPrice,
+            rpc.h_begin_month AS hBeginMonth,
+            rpc.h_end_month AS hEndMonth,
+            rpc.h_lower_hours AS hLowerHours,
+            rpc.h_higher_hours AS hHigherHours,
+            rpc.h_reduct_price AS hReductPrice,
+            rpc.h_increase_price AS hIncreasePrice,
+            rpc.h_price AS hPrice,
+            rpc.standard_hours AS standardHours,
+            rpc.contract_num AS contractNum,
+            rpc.c_real_begin_month AS cRealBeginMonth,
+            rpc.c_real_end_month AS cRealEndMonth,
+            rpc.real_stop_month AS realStopMonth,
+            rpc.remark AS remark
+        from
+            related_v2_project_technician rpc
+        where
+            rpc.del_flag = 0
+          and
+            rpc.project_technician_id = #{proTechId};
+    </select>
+
+    <update id="updateProTech" parameterType="ucl.group.excelSystem.api.db.pojo.RelatedProjectTechnician">
+        update related_v2_project_technician
+        <set>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="contract != null">
+                contract = #{contract},
+            </if>
+            <if test="cRealBeginMonth != null">
+                c_real_begin_month = #{cRealBeginMonth},
+            </if>
+            <if test="cRealEndMonth != null">
+                c_real_end_month = #{cRealEndMonth},
+            </if>
+            <if test="realStopMonth != null">
+                real_stop_month = #{realStopMonth},
+            </if>
+            <if test="cBeginMonth != null">
+                c_begin_month = #{cBeginMonth},
+            </if>
+            <if test="cEndMonth != null">
+                c_end_month = #{cEndMonth},
+            </if>
+            <if test="stopMonth != null">
+                stop_month = #{stopMonth},
+            </if>
+            <if test="cLowerHours != null">
+                c_lower_hours = #{cLowerHours},
+            </if>
+            <if test="cHigherHours != null">
+                c_higher_hours = #{cHigherHours},
+            </if>
+            <if test="cReductPrice != null">
+                c_reduct_price = #{cReductPrice},
+            </if>
+            <if test="cIncreasePrice != null">
+                c_increase_price = #{cIncreasePrice},
+            </if>
+            <if test="cPrice != null">
+                c_price = #{cPrice},
+            </if>
+            <if test="hBeginMonth != null">
+                h_begin_month = #{hBeginMonth},
+            </if>
+            <if test="hEndMonth != null">
+                h_end_month = #{hEndMonth},
+            </if>
+            <if test="hLowerHours != null">
+                h_lower_hours = #{hLowerHours},
+            </if>
+            <if test="hHigherHours != null">
+                h_higher_hours = #{hHigherHours},
+            </if>
+            <if test="hReductPrice != null">
+                h_reduct_price = #{hReductPrice},
+            </if>
+            <if test="hIncreasePrice != null">
+                h_increase_price = #{hIncreasePrice},
+            </if>
+            <if test="hPrice != null">
+                h_price = #{hPrice},
+            </if>
+            <if test="standardHours != null">
+                standard_hours = #{standardHours},
+            </if>
+            <if test="priceMonth != null">
+                price_month = #{priceMonth},
+            </if>
+            <if test="contractNum != null">
+                contract_num = #{contractNum},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+            <if test="updateBy != null">
+                update_by = #{updateBy},
+            </if>
+            <if test="contractType != null">
+                contract_type = #{contractType},
+            </if>
+            update_time = NOW()
+        </set>
+        where
+        project_technician_id = #{projectTechnicianId}
+    </update>
+
+    <delete id="deleteProTech">
+        update related_v2_project_technician
+        set del_flag = 2
+        where project_technician_id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectTechnician" resultType="java.util.HashMap">
+        select
+            bt.technician_id AS technicianId,
+            bt.name AS technicianName,
+            bt.picture AS picture,
+            bt.katakana AS katakana,
+            bt.roman AS roman,
+            bt.birthday AS birthday,
+            bt.representative AS representative,
+            bt.belong_company AS belongCompany
+        from
+            basic_v2_technician bt
+        where
+            del_flag = 0
+    </select>
+    <select id="selectProject" parameterType="long" resultType="java.util.HashMap">
+        select
+            bp.project_id AS projectId,
+            bp.customer_id AS customerId,
+            bp.project_name AS projectName,
+            bp.principal AS principal,
+            bp.principal_company AS principalCompany
+        from
+            basic_v2_project bp
+        where
+            bp.del_flag = 0
+        <if test="customerId!=null">
+            and bp.customer_id = #{customerId}
+        </if>
+    </select>
+
+    <select id="selectCustomer" resultType="java.util.HashMap">
+        select
+            bc.customer_id AS customerId,
+            bc.customer_name AS customerName
+        from
+            basic_v2_customer bc
+        where
+            del_flag = 0
+    </select>
+
+
+</mapper>

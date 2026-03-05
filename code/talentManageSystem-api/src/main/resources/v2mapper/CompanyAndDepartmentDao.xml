@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.CompanyAndDepartmentDao">
+    <!-- 通过 company_name 查找已存在的公司信息 -->
+    <select id="findByCompanyName" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        SELECT * FROM basic_v2_company_management WHERE company_name = #{companyName} LIMIT 1;
+    </select>
+
+    <!-- 通过 company_abbreviation 查找已存在的公司信息 -->
+    <select id="findByCompanyAbbreviation" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        SELECT * FROM basic_v2_company_management WHERE company_abbreviation = #{companyAbbreviation} LIMIT 1;
+    </select>
+
+    <!-- 通过 company_name 查找已存在的公司信息（排除自身 company_id） -->
+    <select id="findByCompanyNameExcludingId" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        SELECT * FROM basic_v2_company_management WHERE company_name = #{companyName} AND company_id != #{companyId} LIMIT 1;
+    </select>
+
+    <!-- 通过 company_abbreviation 查找已存在的公司信息（排除自身 company_id） -->
+    <select id="findByCompanyAbbreviationExcludingId" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        SELECT * FROM basic_v2_company_management WHERE company_abbreviation = #{companyAbbreviation} AND company_id != #{companyId} LIMIT 1;
+    </select>
+    <select id="hasActiveProjects" resultType="int">
+        SELECT
+        CASE WHEN (
+        (SELECT COUNT(1)
+        FROM basic_v2_project_manage
+        WHERE sales_company_id = #{companyId}
+        AND project_id IS NOT NULL
+        AND active_flg = 1)
+        +
+        (SELECT COUNT(1)
+        FROM basic_v2_project_detail
+        WHERE company_id = #{companyId}
+        AND project_id IS NOT NULL
+        AND active_flg = 1)
+        ) > 0 THEN 1 ELSE 0 END
+    </select>
+
+
+    <insert id="insertCompany">
+        insert into basic_v2_company_management
+        (company_name, company_abbreviation, postal_code, company_city,
+        company_address, company_phonenumber, billsite_check, bill_postalcode,
+        bill_city, bill_address, bill_phonenumber, representitive_position,
+        representitive_name, invoice_code, payment_term, sale_or_procurement,
+        <!--contract_start_date, contract_end_date, comment, active_flg)-->
+        contract_start_date, closing_date,contract_end_date, comment, active_flg)
+        values
+        (#{companyName}, #{companyAbbreviation}, #{postalCode}, #{companyCity},
+        #{companyAddress},#{companyPhonenumber},#{billsiteCheck},#{billPostalcode},
+        #{billCity},#{billAddress},#{billPhonenumber},#{representitivePosition},
+        #{representitiveName},#{invoiceCode},#{paymentTerm},#{saleOrProcurement},
+        <!--#{contractStartDate},#{contractEndDate},#{comment},#{activeFlg})-->
+        #{contractStartDate},#{closingDate},#{contractEndDate},#{comment},#{activeFlg})
+    </insert>
+
+        <!-- 主更新：更新公司信息 -->
+        <update id="updateCompany">
+            UPDATE basic_v2_company_management
+            <set>
+                update_time = NOW(),
+                <if test="companyName != null">
+                    company_name = #{companyName},
+                </if>
+                <if test="companyAbbreviation != null">
+                    company_abbreviation = #{companyAbbreviation},
+                </if>
+                <if test="postalCode != null">
+                    postal_code = #{postalCode},
+                </if>
+                <if test="companyCity != null">
+                    company_city = #{companyCity},
+                </if>
+                <if test="companyAddress != null">
+                    company_address = #{companyAddress},
+                </if>
+                <if test="companyPhonenumber != null">
+                    company_phonenumber = #{companyPhonenumber},
+                </if>
+                <if test="billsiteCheck != null">
+                    billsite_check = #{billsiteCheck},
+                </if>
+                <if test="billPostalcode != null">
+                    bill_postalcode = #{billPostalcode},
+                </if>
+                <if test="billCity != null">
+                    bill_city = #{billCity},
+                </if>
+                <if test="billAddress != null">
+                    bill_address = #{billAddress},
+                </if>
+                <if test="billPhonenumber != null">
+                    bill_phonenumber = #{billPhonenumber},
+                </if>
+                <if test="representitivePosition != null">
+                    representitive_position = #{representitivePosition},
+                </if>
+                <if test="representitiveName != null">
+                    representitive_name = #{representitiveName},
+                </if>
+                <if test="invoiceCode != null">
+                    invoice_code = #{invoiceCode},
+                </if>
+                <if test="paymentTerm != null">
+                    payment_term = #{paymentTerm},
+                </if>
+                <if test="saleOrProcurement != null">
+                    sale_or_procurement = #{saleOrProcurement},
+                </if>
+                <if test="contractStartDate != null">
+                    contract_start_date = #{contractStartDate},
+                </if>
+                <if test="contractEndDate != null">
+                    contract_end_date = #{contractEndDate},
+                </if>
+                <if test="comment != null">
+                    comment = #{comment},
+                </if>
+                <if test="closingDate != null">
+                    closing_date = #{closingDate},
+                </if>
+                <if test="activeFlg != null">
+                    active_flg = #{activeFlg}
+                </if>
+            </set>
+            WHERE company_id = #{companyId}
+        </update>
+
+        <!-- 级联更新：当公司被设为无效时，同时更新相关表中的数据 -->
+        <update id="deactivateRelatedProjects" parameterType="int">
+            <!-- 更新 project_manage 表 -->
+            UPDATE basic_v2_project_manage
+            SET active_flg = 0,
+            update_time = NOW()
+            WHERE sales_company_id = #{companyId};
+
+            <!-- 更新 project_detail 表 -->
+            UPDATE basic_v2_project_detail
+            SET active_flg = 0,
+            update_time = NOW()
+            WHERE company_id = #{companyId};
+
+            UPDATE basic_v2_department_management
+            SET active_flg = 0,
+            update_time = NOW()
+            WHERE company_id = #{companyId};
+
+            UPDATE basic_v2_company_staff
+            SET active_flg = 0,
+            update_time = NOW()
+            WHERE company_id = #{companyId};
+        </update>
+
+
+
+    <select id="selectCompanyByPageCount" resultType="java.lang.Long">
+        select count(1) from basic_v2_company_management
+        <!--where active_flg = 1-->
+    </select>
+    <select id="selectSaleCompanyByPageCount" resultType="java.lang.Long">
+        select count(1) from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        sale_or_procurement = 1
+    </select>
+    <select id="selectProcurementCompanyByPageCount" resultType="java.lang.Long">
+        select count(1) from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        sale_or_procurement = 2
+    </select>
+    <select id="selectUclByPageCount" resultType="java.lang.Long">
+        select count(1) from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        sale_or_procurement = 3
+    </select>
+
+    <select id="selectCompanyByPage" resultType="java.util.HashMap">
+        select
+        company_id AS companyId,
+        company_name AS companyName,
+        company_abbreviation AS companyAbbreviation,
+        active_flg AS activeFlg
+        from basic_v2_company_management
+        <!--where-->
+        <!--active_flg = 1-->
+        LIMIT ${length} OFFSET ${start}
+    </select>
+    <select id="selectSaleCompanyByPage" resultType="java.util.HashMap">
+        select
+        company_id AS companyId,
+        company_name AS companyName,
+        company_abbreviation AS companyAbbreviation,
+        active_flg AS activeFlg
+        from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        sale_or_procurement = 1
+        LIMIT ${length} OFFSET ${start}
+    </select>
+    <select id="selectProcurementCompanyByPage" resultType="java.util.HashMap">
+        select
+        company_id AS companyId,
+        company_name AS companyName,
+        company_abbreviation AS companyAbbreviation,
+        active_flg AS activeFlg
+        from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        sale_or_procurement = 2
+        LIMIT ${length} OFFSET ${start}
+    </select>
+    <select id="selectUclByPage" resultType="java.util.HashMap">
+        select
+        company_id AS companyId,
+        company_name AS companyName,
+        company_abbreviation AS companyAbbreviation,
+        active_flg AS activeFlg
+        from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        sale_or_procurement = 3
+        LIMIT ${length} OFFSET ${start}
+    </select>
+    <select id="getById" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        select
+        company_id AS companyId,
+        company_name AS companyName,
+        company_abbreviation AS companyAbbreviation,
+        postal_code AS postalCode,
+        company_city AS companyCity,
+        company_address AS companyAddress,
+        company_phonenumber AS companyPhonenumber,
+        billsite_check AS billsiteCheck,
+        bill_postalcode AS billPostalcode,
+        bill_city AS billCity,
+        bill_address AS billAddress,
+        bill_phonenumber AS billPhonenumber,
+        closing_date AS closingDate,
+        representitive_position AS representitivePosition,
+        representitive_name AS representitiveName,
+        invoice_code AS invoiceCode,
+        payment_term AS paymentTerm,
+        sale_or_procurement AS saleOrProcurement,
+        contract_start_date AS contractStartDate,
+        contract_end_date AS contractEndDate,
+        comment AS comment,
+        active_flg AS activeFlg
+        from basic_v2_company_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        company_id = #{companyId}
+    </select>
+    <select id="selectTradeCompanyByPage" resultType="java.util.HashMap">
+        select
+        company_id AS companyId,
+        company_abbreviation AS companyAbbreviation
+        from basic_v2_company_management
+        where
+        active_flg = 1
+        and
+        sale_or_procurement = 1
+        LIMIT ${length} OFFSET ${start}
+    </select>
+    <select id="selectSaleCompanyByDepartmentIdsByPage" resultType="java.util.HashMap">
+        SELECT
+        c.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation
+        FROM basic_v2_department_management d
+        INNER JOIN basic_v2_company_management c
+        ON d.company_id = c.company_id
+        WHERE d.active_flg = 1
+        AND d.department_id IN
+        <foreach collection="departmentIds" item="departmentId" open="(" separator="," close=")">
+            #{departmentId}
+        </foreach>
+        AND c.active_flg = 1
+        AND c.sale_or_procurement = 1;
+    </select>
+    <select id="selectUclDepartmentsByPage" resultType="java.util.HashMap">
+        SELECT
+        c.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation
+        FROM basic_v2_department_management d
+        INNER JOIN basic_v2_company_management c
+        ON d.company_id = c.company_id
+        WHERE d.active_flg = 1
+        AND d.department_id IN
+        <foreach collection="departmentIds" item="departmentId" open="(" separator="," close=")">
+            #{departmentId}
+        </foreach>
+        AND c.active_flg = 1
+        AND c.sale_or_procurement = 3;
+    </select>
+    <select id="getAll" resultType="ucl.group.excelSystem.api.db.pojo.BasicCompanyEntity">
+        select * from basic_v2_company_management
+        where active_flg = 1
+    </select>
+    <select id="selectSaleCompanyByPageCount1" resultType="java.lang.Long">
+        select count(1) from basic_v2_company_management
+        where
+        active_flg = 1
+        and
+        sale_or_procurement IN (1, 3)
+    </select>
+    <select id="selectSaleCompanyByProjectIds" resultType="java.util.HashMap">
+        SELECT
+        c.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation
+        FROM basic_v2_project_manage p
+        INNER JOIN basic_v2_company_management c
+        ON p.sales_company_id = c.company_id
+        WHERE p.active_flg = 1
+        AND p.project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        AND c.active_flg = 1
+        AND c.sale_or_procurement IN (1, 3);
+    </select>
+</mapper>

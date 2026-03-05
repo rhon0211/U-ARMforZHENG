@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.DepartmentDao">
+    <insert id="insertDepartment">
+        insert into basic_v2_department_management
+        (company_id, department_name, department_abbreviation, principal_job, principal_name,
+        <!--department_startdate, department_enddate, comment, active_flg)-->
+        department_startdate, department_enddate,closing_date, comment, active_flg)
+        values
+        (#{companyId}, #{departmentName}, #{departmentAbbreviation}, #{principalJob}, #{principalName},
+        <!--#{departmentStartdate}, #{departmentEnddate}, #{comment}, #{activeFlg})-->
+        #{departmentStartdate}, #{departmentEnddate},#{closingDate}, #{comment}, #{activeFlg})
+    </insert>
+    <select id="checkdepartment" resultType="int">
+        SELECT COUNT(1)
+        FROM basic_v2_project_manage
+        WHERE department_id = #{departmentId}
+        AND project_id IS NOT NULL
+        AND active_flg = 1
+    </select>
+    <update id="updateDepartment">
+        update basic_v2_department_management
+        <set>
+            update_time = now(),
+            <if test="companyId != null || companyId !=''">
+                company_id = #{companyId},
+            </if>
+            <if test="departmentName != null">
+                department_name = #{departmentName},
+            </if>
+            <if test="departmentAbbreviation != null">
+                department_abbreviation = #{departmentAbbreviation},
+            </if>
+            <if test="principalJob != null">
+                principal_job = #{principalJob},
+            </if>
+            <if test="closingDate != null">
+                closing_date = #{closingDate},
+            </if>
+            <if test="principalName != null">
+                principal_name = #{principalName},
+            </if>
+            <if test="departmentStartdate != null">
+                department_startdate = #{departmentStartdate},
+            </if>
+            <if test="departmentEnddate != null">
+                department_enddate = #{departmentEnddate},
+            </if>
+            <if test="comment != null">
+                comment = #{comment},
+            </if>
+            <if test="activeFlg != null">
+                active_flg = #{activeFlg}
+            </if>
+        </set>
+        where department_id = #{departmentId}
+    </update>
+    <update id="deactivateDPProjects" parameterType="int">
+        <!-- 更新 project_manage 表 -->
+        UPDATE basic_v2_project_manage
+        SET active_flg = 0,
+        update_time = NOW()
+        WHERE department_id = #{departmentId};
+
+    </update>
+
+    <select id="getDepartmentCountByCompanyId" resultType="java.lang.Integer">
+        select count(*)
+        from basic_v2_department_management
+        where company_id = #{companyId}
+    </select>
+    <select id="getDepartmentListByCompanyId" resultType="ucl.group.excelSystem.api.db.pojo.vo.DepartmentVo">
+        select
+        department_id AS departmentId,
+        department_name AS departmentName,
+        department_abbreviation AS departmentAbbreviation,
+        principal_name AS principalName,
+        closing_date AS closingDate,
+        active_flg AS activeFlg
+        from
+        basic_v2_department_management
+        where company_id = #{companyId}
+    </select>
+    <select id="getById" resultType="ucl.group.excelSystem.api.db.pojo.BasicDepartmentEntity">
+        select
+        department_id AS departmentId,
+        company_id AS companyId,
+        department_name AS departmentName,
+        department_abbreviation AS departmentAbbreviation,
+        <!--bill_address AS billAddress,-->
+        principal_job AS principalJob,
+        principal_name AS principalName,
+        department_startdate AS departmentStartdate,
+        closing_date AS closingDate,
+        department_enddate AS departmentEnddate,
+        comment AS comment,
+        active_flg AS activeFlg
+        from basic_v2_department_management
+        where
+        <!--active_flg = 1-->
+        <!--and-->
+        department_id = #{departmentId}
+    </select>
+    <select id="selectDepartmentsByCompanyId" resultType="java.util.HashMap">
+        select
+        department_id AS departmentId,
+        department_abbreviation AS departmentAbbreviation
+        from
+        basic_v2_department_management
+        where
+        active_flg = 1
+        and
+        company_id = #{companyId}
+    </select>
+    <select id="getDepartmentsByProjectIds" resultType="java.util.HashMap">
+        SELECT
+        d.department_id AS departmentId,
+        d.department_abbreviation AS departmentAbbreviation
+        FROM basic_v2_project_manage p
+        INNER JOIN basic_v2_department_management d
+        ON p.department_id = d.department_id
+        WHERE p.project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </select>
+    <select id="getDepartmentIdsByProjectIds" resultType="java.lang.Integer">
+<!--        SELECT
+        department_id AS departmentId
+        FROM basic_v2_project_manage
+        WHERE project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>-->
+        SELECT
+        department_id AS departmentId
+        FROM basic_v2_trading_management
+        WHERE project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </select>
+    <select id="getDepartmentsByCompanyId" resultType="java.util.HashMap">
+        SELECT
+        department_id AS departmentId,
+        department_abbreviation AS departmentAbbreviation,
+        principal_name AS principalName
+        FROM basic_v2_department_management
+        WHERE
+        active_flg = 1
+        and
+        company_id = #{companyId}
+    </select>
+</mapper>

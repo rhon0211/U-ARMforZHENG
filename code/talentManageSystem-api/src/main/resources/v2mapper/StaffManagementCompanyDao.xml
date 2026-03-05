@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.StaffManagementCompanyDao">
+    <select id="selectStaffCompanyByPageCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM basic_v2_company_management
+        WHERE sale_or_procurement IN (2, 3)
+    </select>
+    <select id="selectCompanyByPage" resultType="java.util.HashMap">
+        SELECT
+        company_id AS companyId,
+        company_abbreviation AS companyAbbreviation
+        FROM basic_v2_company_management
+        where sale_or_procurement IN (2, 3)
+        LIMIT #{param.length} OFFSET #{param.start}
+    </select>
+</mapper>

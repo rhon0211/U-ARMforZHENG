@@ -1,0 +1,8 @@
+/.idea/
+/dist/
+/mysql_data/
+/target/
+*.log
+*.iml
+node_modules/
+.DS_Store

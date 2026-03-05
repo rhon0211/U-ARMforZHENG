@@ -1,0 +1,65 @@
+.content {
+	border: solid 1px #45B9F0 !important;
+	border-collapse: collapse;
+	margin: 20px 30px;
+	th {
+		padding: 10px 20px;
+		border: solid 1px #45B9F0 !important;
+		text-align: center;
+		font-weight: bold;
+		background-color: #D3EDFA;
+		color: #45B9F0;
+		white-space: nowrap;
+	}
+
+	td {
+		padding: 10px 20px;
+		border: solid 1px #45B9F0 !important;
+		line-height: 1.7;
+	}
+}
+
+.parent-container {
+    overflow-x: auto;
+}
+
+.el-table {
+    width: auto !important;
+	overflow-x: auto;
+}
+.el-table-column {
+    min-width: auto !important;
+}
+
+
+.spacer {
+	flex: 0 0 10px;
+	/* 设置间距为 10px */
+}
+
+.form-item-container {
+	display: flex;
+	align-items: center;
+	margin-bottom: 10px;
+	/* 设置上下间距 */
+}
+
+.form-item-container>*:not(:last-child) {
+	margin-right: 10px;
+	/* 设置左右间距 */
+}
+
+@media (max-width: 575.98px) {
+	.form-item-container {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/deep/ .appointedRow {
+	background-color: hsl(48, 33%, 97%);
+}
+
+/deep/ .appointingRow {
+	background-color: hsl(127, 57%, 97%);
+}

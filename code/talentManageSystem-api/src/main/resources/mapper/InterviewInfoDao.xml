@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.InterviewInfoDao">
+
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewInfoEntity" id="InterviewInfoResult">
+        <id property="interId" column="inter_id"/>
+        <result property="busDate" column="bus_date"/>
+        <result property="busInterviewer" column="bus_interviewer"/>
+        <result property="busEvaluation" column="bus_evaluation"/>
+        <result property="techDate" column="tech_date"/>
+        <result property="techInterviewer" column="tech_interviewer"/>
+        <result property="techEvaluation" column="tech_evaluation"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+    <sql id="selectByPage">
+        SELECT p.inter_id,p.bus_date,p.bus_interviewer,p.bus_evaluation,p.tech_date,
+        p.tech_interviewer,p.tech_evaluation,p.status,p.remark,p.picture
+        FROM basic_interview_info p
+    </sql>
+    <select id="searchByTalentId"  resultType="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewInfoEntity">
+        <include refid="selectByPage"/>
+        left join related_talent_interview rti ON p.inter_id = rti.inter_id
+        WHERE rti.talent_id = #{talentId}
+    </select>
+
+    <select id="countInterviewedNum" resultType="int">
+        select count(*)
+        from basic_interview_info
+        <where>
+           and  del_flag='0'
+            <choose>
+                <when test="type == '0'.toString() ">
+                   and  bus_interviewer = #{interviewerId}
+                    <if test="startDate != null and startDate!='' ">
+                        and date_format(bus_date,'%Y%m%d') &gt;= date_format(#{startDate},'%Y%m%d')
+                    </if>
+                    <if test="endDate != null and endDate!=''">
+                        and date_format(bus_date,'%Y%m%d') &lt;= date_format(#{endDate},'%Y%m%d')
+                    </if>
+                </when>
+                <when test="type == '1'.toString() ">
+                   and  tech_interviewer = #{interviewerId}
+                    <if test="startDate != null and startDate!=''">
+                        and date_format(tech_date,'%Y%m%d') &gt;= date_format(#{startDate},'%Y%m%d')
+                    </if>
+                    <if test="endDate != null and endDate!=''">
+                        and date_format(tech_date,'%Y%m%d') &lt;= date_format(#{endDate},'%Y%m%d')
+                    </if>
+                </when>
+
+            </choose>
+        </where>
+    </select>
+    <select id="countHiredNum" resultType="int">
+        select count(*)
+        from basic_interview_info
+        <where>
+            and  del_flag='0'
+            <choose>
+                <when test="type == '0'.toString() ">
+                    and bus_interviewer = #{interviewerId} and status='1'
+                    <if test="startDate != null and startDate!=''">
+                        and date_format(bus_date,'%Y%m%d') &gt;= date_format(#{startDate},'%Y%m%d')
+                    </if>
+                    <if test="endDate != null and endDate!=''">
+                        and date_format(bus_date,'%Y%m%d') &lt;= date_format(#{endDate},'%Y%m%d')
+                    </if>
+                </when>
+                <when test="type == '1'.toString()">
+                    and tech_interviewer = #{interviewerId} and status='1'
+                    <if test="startDate != null and startDate!=''">
+                        and date_format(tech_date,'%Y%m%d') &gt;= date_format(#{startDate},'%Y%m%d')
+                    </if>
+                    <if test="endDate != null and endDate!=''">
+                        and date_format(tech_date,'%Y%m%d') &lt;= date_format(#{endDate},'%Y%m%d')
+                    </if>
+                </when>
+            </choose>
+        </where>
+    </select>
+    <select id="countInterviewedNumByDate" resultType="int">
+        select count(*)
+        FROM basic_interview_info
+        WHERE del_flag='0' and  COALESCE(GREATEST(bus_date, tech_date), bus_date, tech_date) BETWEEN #{startDate} AND #{endDate}
+    </select>
+    <select id="countHiredNumByDate" resultType="int">
+        select count(*)
+        FROM basic_interview_info
+        WHERE del_flag='0' and status='1' and COALESCE(GREATEST(bus_date, tech_date), bus_date, tech_date) BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+
+    <insert id="add" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewInfoEntity"
+            useGeneratedKeys="true"
+            keyProperty="interId">
+        insert into basic_interview_info(
+        <if test="interId != null and interId != 0">inter_id,</if>
+        <if test="busDate != null">bus_date,</if>
+        <if test="busInterviewer != null ">bus_interviewer,</if>
+        <if test="busEvaluation != null ">bus_evaluation,</if>
+        <if test="techDate != null">tech_date,</if>
+        <if test="techInterviewer != null ">tech_interviewer,</if>
+        <if test="techEvaluation != null">tech_evaluation,</if>
+        <if test="createBy != null and createBy != ''">created_by,</if>
+        <if test="status != null ">status,</if>
+        <if test="remark != null ">remark,</if>
+        <if test="picture != null ">picture,</if>
+        created_time
+        )values(
+        <if test="interId != null and interId != 0">#{interId},</if>
+        <if test="busDate != null ">#{busDate,jdbcType=DATE},</if>
+        <if test="busInterviewer != null ">#{busInterviewer},</if>
+        <if test="busEvaluation != null ">#{busEvaluation},</if>
+        <if test="techDate != null ">#{techDate,jdbcType=DATE},</if>
+        <if test="techInterviewer != null ">#{techInterviewer},</if>
+        <if test="techEvaluation != null ">#{techEvaluation},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        <if test="status != null ">#{status},</if>
+        <if test="remark != null ">#{remark},</if>
+        <if test="picture != null ">#{picture},</if>
+        sysdate()
+        )
+
+    </insert>
+    <update id="edit" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicInterviewInfoEntity">
+        update basic_interview_info
+        <set>
+            bus_date=#{busDate,jdbcType=DATE},
+            <if test="busInterviewer != null "> bus_interviewer=#{busInterviewer},</if>
+            <if test="busEvaluation != null "> bus_evaluation=#{busEvaluation},</if>
+            tech_date=#{techDate,jdbcType=DATE},
+            <if test="techInterviewer != null ">tech_interviewer=#{techInterviewer},</if>
+            <if test="techEvaluation != null ">tech_evaluation=#{techEvaluation},</if>
+            <if test="status != null ">status=#{status},</if>
+            <if test="remark != null ">remark=#{remark},</if>
+            <if test="picture != null ">picture=#{picture},</if>
+            updated_time = sysdate()
+        </set>
+        where inter_id = #{interId}
+    </update>
+    <delete id="remove" parameterType="int">
+        update basic_interview_info set del_flag = '2' where inter_id in
+        <foreach collection="array" item="interId" open="(" separator="," close=")">
+            #{interId}
+        </foreach>
+    </delete>
+    <insert id="addRelated" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedTalentInterview">
+        insert into related_talent_interview(
+        talent_id,inter_id)
+        values(
+        #{talentId},#{interId})
+    </insert>
+    <delete id="removeRelated" parameterType="Integer">
+        delete from related_talent_interview
+        where inter_id=#{interId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.LabelTypeDao">
+
+    <select id="LabelTypeSelect" resultType="HashMap">
+        SELECT
+            blt.type_id AS id,
+            blt.name AS name,
+            blt.name_jap AS nameJap
+        FROM
+            talentmanagesystem.basic_label_type blt
+    </select>
+
+    <insert id="LabelTypeInsert" parameterType="ucl.group.talentManageSystem.api.db.pojo.LabelTypeEntity">
+        INSERT INTO talentmanagesystem.basic_label_type (name, name_jap, status, del_flag, created_by, created_time)
+        VALUES (#{typeName}, #{typeNameJap}, 0, 0, #{createBy}, NOW())
+    </insert>
+
+    <update id="LabelTypeUpdate" parameterType="ucl.group.talentManageSystem.api.db.pojo.LabelTypeEntity">
+        UPDATE
+            talentmanagesystem.basic_label_type
+        SET
+            name = #{typeName},
+            name_jap = #{typeNameJap},
+            updated_by = #{updateBy},
+            updated_time = NOW()
+        WHERE
+            type_id = #{typeId}
+    </update>
+
+    <select id="LabelTypeCheckDelete" resultType="integer">
+        SELECT
+            COUNT(rlt.label_id) AS labelCount
+        FROM
+            talentmanagesystem.basic_label_type blt
+        LEFT JOIN
+            talentmanagesystem.related_label_type rlt ON blt.type_id = rlt.type_id
+        LEFT JOIN
+            talentmanagesystem.basic_label bl ON bl.label_id = rlt.label_id
+        WHERE
+            blt.type_id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND
+            bl.del_flag = 0
+    </select>
+
+    <delete id="LabelTypeDeletes">
+        UPDATE
+            talentmanagesystem.basic_label_type
+        SET
+            del_flag = 2
+        WHERE
+            type_id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="LabelTypeSearchCount" parameterType="Map" resultType="java.lang.Long">
+        SELECT COUNT(*)
+            from talentmanagesystem.basic_label_type blt
+        WHERE 1 = 1
+        AND
+            blt.del_flag = 0
+        AND
+            blt.status = ${status}
+        <if test="typeName!=null">
+            AND blt.name LIKE '%${typeName}%'
+        </if>
+    </select>
+
+    <select id="LabelTypeSearchByPage" parameterType="Map" resultType="HashMap">
+        select
+            blt.type_id as typeId,
+            blt.name as typeName,
+            blt.name_jap AS typeNameJap
+        from
+            talentmanagesystem.basic_label_type blt
+        where
+            blt.del_flag = 0
+        and
+            blt.status = #{status}  <!-- Use #{} for safety against SQL injection -->
+        <if test="typeName != null and typeName != ''">
+            and blt.name like CONCAT('%', #{typeName}, '%')  <!-- Safe dynamic SQL -->
+        </if>
+        limit #{length} offset #{start}
+    </select>
+
+    <select id="searchById" parameterType="integer" resultType="java.util.HashMap">
+        SELECT
+            blt.name AS typeName,
+            blt.name_jap AS typeNameJap,
+            blt.type_id AS typeId
+        FROM
+            talentmanagesystem.basic_label_type blt
+        WHERE
+            blt.type_id = ${typeId}
+    </select>
+
+</mapper>

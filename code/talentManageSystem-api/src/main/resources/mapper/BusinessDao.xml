@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.BusinessDao">
+
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.vo.BusinessYear" id="BusinessYearResult">
+        <result property="businessId" column="business_id"/>
+        <result property="businessName" column="business_name"/>
+        <result property="businessYear" column="business_year"/>
+    </resultMap>
+
+    <select id="BusinessSelect" resultType="HashMap">
+        SELECT
+            bb.business_id AS businessId,
+            bb.business_name AS businessName,
+            bb.remark AS remark
+        FROM
+            talentmanagesystem.basic_business bb
+    </select>
+
+    <insert id="BusinessInsert" parameterType="ucl.group.talentManageSystem.api.db.pojo.BusinessEntity">
+        INSERT INTO talentmanagesystem.basic_business (business_name, remark, status, del_flag, created_by, created_time)
+        VALUES (#{businessName}, #{remark}, 0, 0, #{createBy}, NOW())
+    </insert>
+
+    <update id="BusinessUpdate" parameterType="ucl.group.talentManageSystem.api.db.pojo.BusinessEntity">
+        UPDATE
+            talentmanagesystem.basic_business
+        SET
+            business_name = #{businessName},
+            remark = #{remark},
+            updated_by = #{updateBy},
+            updated_time = NOW()
+        WHERE
+            business_id = #{businessId}
+    </update>
+
+    <select id="searchBusinessByTalentId" parameterType="integer" resultMap="BusinessYearResult">
+        SELECT b.business_id,business_name,business_year
+        FROM related_talent_business rtb
+        left join basic_business b on b.business_id = rtb.business_id
+        WHERE rtb.talent_id = #{talentId} and b.status='0' and b.del_flag = '0'
+    </select>
+</mapper>

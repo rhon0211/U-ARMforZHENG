@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.StatsDao">
+    <!-- 基本的ResultMap -->
+    <resultMap id="BasicProjectMap" type="ucl.group.excelSystem.api.db.pojo.BasicStatsEntity">
+        <id column="stats_id" property="statsId"/>
+        <result column="ucl_member" property="uclMember"/>
+        <result column="bp_member" property="bpMember"/>
+        <result column="total_number" property="totalNumber"/>
+        <result column="bp_ucl_rate" property="bpUclRate"/>
+        <result column="year_month" property="yearMonth"/>
+    </resultMap>
+
+    <insert id="addStats" parameterType="ucl.group.excelSystem.api.db.pojo.BasicStatsEntity" useGeneratedKeys="true" keyProperty="statsId">
+        insert into basic_v2_stats
+        (stats_id,ucl_member,bp_member,total_number,bp_ucl_rate,`year_month`)
+        values(
+        #{statsId},#{uclMember},#{bpMember},#{totalNumber},#{bpUclRate},#{yearMonth,jdbcType=DATE}
+        )
+    </insert>
+    <update id="modifyStats" parameterType="ucl.group.excelSystem.api.db.pojo.BasicStatsEntity" >
+       update basic_v2_stats
+        <set>
+            ucl_member=#{uclMember},
+            bp_member=#{bpMember},
+            bp_ucl_rate=#{bpUclRate},
+            total_number=#{totalNumber}
+        </set>
+            where `year_month`=#{yearMonth,jdbcType=DATE}
+    </update>
+    <select id="searchByYearMonth" parameterType="String" resultMap="BasicProjectMap">
+        select * from
+        basic_v2_stats
+        where `year_month`=#{yearMonth}
+    </select>
+    <update id="edit" parameterType="ucl.group.excelSystem.api.db.pojo.BasicStatsEntity" >
+        update basic_v2_stats
+        <set>
+            ucl_member=#{uclMember},
+            bp_member=#{bpMember},
+            total_number=#{totalNumber},
+            bp_ucl_rate=#{bpUclRate},
+            `year_month` = #{yearMonth,jdbcType=DATE}
+        </set>
+        where stats_id = #{statsId}
+    </update>
+    <update id="updateStatsByYearMonth" parameterType="ucl.group.excelSystem.api.db.pojo.BasicStatsEntity">
+        update basic_v2_stats
+        <set>
+            ucl_member=#{uclMember},
+            bp_member=#{bpMember},
+            total_number=#{totalNumber},
+            bp_ucl_rate=#{bpUclRate},
+        </set>
+        where `year_month` = #{yearMonth,jdbcType=DATE}
+    </update>
+    <select id="countByYearMonth" parameterType="java.util.List" resultType="int">
+        SELECT COUNT(*)
+        FROM basic_v2_stats
+        WHERE DATE_FORMAT(`year_month`,'%Y-%m-%d') IN
+        <foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+    <select id="selectYearMonth" resultType="java.sql.Date">
+<!--        SELECT `year_month`-->
+<!--        FROM talentmanagesystem.basic_v2_stats-->
+<!--        ORDER BY stats_id DESC-->
+<!--        LIMIT 1;-->
+        SELECT MAX(`year_month`) AS `year_month`
+        FROM talentmanagesystem.basic_v2_stats
+    </select>
+</mapper>

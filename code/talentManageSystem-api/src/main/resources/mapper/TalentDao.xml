@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.TalentDao">
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.BasicTalentEntity" id="TalentResult">
+        <id property="talentId" column="talent_id"/>
+        <result property="name" column="name"/>
+        <result property="pseudonym" column="pseudonym"/>
+        <result property="englishName" column="english_name"/>
+        <result property="sex" column="sex"/>
+        <result property="birth" column="birth"/>
+        <result property="exprYear" column="expr_year"/>
+        <result property="nation" column="nation"/>
+        <result property="inJapanYear" column="in_japan_year"/>
+        <result property="japanLevel" column="japan_level"/>
+        <result property="station" column="station"/>
+        <result property="school" column="school"/>
+        <result property="major" column="major"/>
+        <result property="picture" column="picture"/>
+        <result property="price" column="price"/>
+        <result property="skillSheet" column="skill_sheet"/>
+        <result property="talentDescription" column="talent_description"/>
+        <result property="email" column="email"/>
+        <result property="phone" column="phone"/>
+        <result property="wechat" column="wechat"/>
+        <result property="line" column="line"/>
+        <result property="belongCompany" column="belong_company"/>
+        <result property="appointStatus" column="appoint_status"/>
+        <result property="blacklistReason" column="blacklist_reason"/>
+        <result property="blacklistBy" column="blacklist_by"/>
+        <result property="blacklistTime" column="blacklist_time"/>
+        <result property="deletedBy" column="deleted_by"/>
+        <result property="deletedTime" column="deleted_time"/>
+        <result property="status" column="status"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="created_by"/>
+        <result property="createTime" column="created_time"/>
+        <result property="remark" column="remark"/>
+        <result property="predictMonth" column="predict_month"/>
+        <result property="companyName" column="company_name"/>
+    </resultMap>
+
+    <resultMap type="ucl.group.talentManageSystem.api.db.pojo.vo.LabelYear" id="LabelYearResult">
+        <result property="labelId" column="label_id"/>
+        <result property="labelName" column="name"/>
+        <result property="labelNameJap" column="name_jap"/>
+        <result property="labelYear" column="label_year"/>
+    </resultMap>
+    <sql id="basicTalentQuery">
+        SELECT
+        t.talent_id, t.name, t.pseudonym, t.english_name, t.sex, t.birth, t.expr_year,t.nation,
+        t.in_japan_year,t.japan_level, t.station, t.school, t.major, t.picture,
+        t.price, t.skill_sheet, t.talent_description, t.email, t.phone, t.wechat,
+        t.line, t.belong_company, t.appoint_status, t.blacklist_reason, t.blacklist_by,
+        t.blacklist_time,t.deleted_by,t.deleted_time,t.status,
+        t.del_flag, t.created_by, t.created_time, t.remark, t.company_name,t.predict_month
+        FROM basic_talent t
+    </sql>
+    <select id="searchCount" resultType="Integer">
+        SELECT COUNT(*)
+        FROM (
+        SELECT t.talent_id
+        FROM basic_talent t
+        left join related_talent_engineer rte on rte.talent_id =t.talent_id
+        left join related_talent_label rtl on rtl.talent_id=t.talent_id
+        <where>
+            <!-- 判空条件 -->
+            <if test="name != null and name != ''">
+                AND t.name like concat('%', #{name}, '%')
+            </if>
+            <if test="pseudonym != null and pseudonym != ''">
+                AND t.pseudonym like concat('%', #{pseudonym}, '%')
+            </if>
+            <if test="englishName != null and englishName != ''">
+                AND t.english_name like concat('%', #{englishName}, '%')
+            </if>
+            <if test="exprYear != null">
+                AND t.expr_year &gt;= #{exprYear}
+            </if>
+            <if test="nation != null and nation != ''">
+                AND t.nation = #{nation}
+            </if>
+            <if test="japanLevel != null and japanLevel != ''">
+                AND t.japan_level &lt;= #{japanLevel}
+            </if>
+            <if test="appointStatus != null and appointStatus != ''">
+                AND t.appoint_status = #{appointStatus}
+            </if>
+            <if test="engineerIds != null and engineerIds.size() > 0">
+                <!-- 这里假设 engineer_id 是一个对应的字段名 -->
+                AND rte.engineer_id IN
+                <foreach item="item" index="index" collection="engineerIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="ageStart != null">
+                AND TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) &gt;= #{ageStart}
+            </if>
+            <if test="ageEnd != null">
+                AND TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) &lt;= #{ageEnd}
+            </if>
+            <if test="major != null and major != ''">
+                AND t.major = #{major}
+            </if>
+            <if test="status != null and status != ''">
+                AND t.status = #{status}
+            </if>
+            <if test="delFlag != null and delFlag != ''">
+                AND t.del_flag = #{delFlag}
+            </if>
+            <if test="companyName != null and companyName != ''">
+                AND t.company_name like concat('%',#{companyName},'%')
+            </if>
+            <if test="predictMonth != null and predictMonth != ''">
+                AND t.predict_month like concat(#{predictMonth},'%')
+            </if>
+            <if test="talentDescription != null and talentDescription != ''">
+                AND t.talent_description like concat('%',#{talentDescription},'%')
+            </if>
+            <if test="labelYears != null and labelYears.size() > 0">
+                <foreach item="item" collection="labelYears" open="" separator=" " close="">
+                    AND rtl.label_id =#{item.labelId} AND rtl.label_year &gt;= #{item.labelYear}
+                </foreach>
+            </if>
+        </where>
+        group by t.talent_id
+        ) AS subquery;
+    </select>
+    <select id="searchByPage" resultMap="TalentResult">
+        <include refid="basicTalentQuery"/>
+        left join related_talent_engineer rte on rte.talent_id =t.talent_id
+        left join related_talent_label rtl on rtl.talent_id=t.talent_id
+        left join related_talent_business rtb on rtb.talent_id=t.talent_id
+        <where>
+            <!-- 判空条件 -->
+            <if test="name != null and name != ''">
+                AND t.name like concat('%', #{name}, '%')
+            </if>
+            <if test="pseudonym != null and pseudonym != ''">
+                AND t.pseudonym like concat('%', #{pseudonym}, '%')
+            </if>
+            <if test="englishName != null and englishName != ''">
+                AND t.english_name like concat('%', #{englishName}, '%')
+            </if>
+            <if test="exprYear != null">
+                AND t.expr_year &gt;= #{exprYear}
+            </if>
+            <if test="nation != null and nation != ''">
+                AND t.nation = #{nation}
+            </if>
+            <if test="japanLevel != null and japanLevel != ''">
+                AND t.japan_level &lt;= #{japanLevel}
+            </if>
+            <if test="appointStatus != null and appointStatus != ''">
+                AND t.appoint_status = #{appointStatus}
+            </if>
+            <if test="engineerIds != null and engineerIds.size() > 0">
+                <!-- 这里假设 engineer_id 是一个对应的字段名 -->
+                AND rte.engineer_id IN
+                <foreach item="item" index="index" collection="engineerIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="ageStart != null">
+                AND TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) &gt;= #{ageStart}
+            </if>
+            <if test="ageEnd != null">
+                AND TIMESTAMPDIFF(YEAR, t.birth, CURDATE()) &lt;= #{ageEnd}
+            </if>
+            <if test="major != null and major != ''">
+                AND t.major = #{major}
+            </if>
+            <if test="status != null and status != ''">
+                AND t.status = #{status}
+            </if>
+            <if test="delFlag != null and delFlag != ''">
+                AND t.del_flag = #{delFlag}
+            </if>
+            <if test="talentIds != null and talentIds.size()>0">
+               AND  t.talent_id in
+                <foreach item="item" collection="talentIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="business != null and business != ''">
+                AND rtb.business_id = #{business}
+                AND rtb.business_year >= #{businessYear}
+            </if>
+            <if test="companyName != null and companyName != ''">
+                AND t.company_name like concat('%',#{companyName},'%')
+            </if>
+            <if test="predictMonth != null and predictMonth != ''">
+                AND t.predict_month like concat(#{predictMonth},'%')
+            </if>
+            <if test="talentDescription != null and talentDescription != ''">
+                AND t.talent_description like concat('%',#{talentDescription},'%')
+            </if>
+        </where>
+        group by t.talent_id
+        <if test="engineerSize != null and engineerSize > 0">
+            HAVING COUNT(DISTINCT rte.engineer_id) = #{engineerSize}
+        </if>
+        <if test="orderColumn != null and orderSeq != null and orderColumn != 'interview_info'">
+            ORDER BY
+            CASE
+                WHEN ${orderColumn} IS NULL THEN 1
+                ELSE 0
+            END, t.${orderColumn} ${orderSeq}
+        </if>
+    </select>
+
+    <insert id="add" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicTalentEntity"
+            useGeneratedKeys="true"
+            keyProperty="talentId">
+        insert into basic_talent(
+        <if test="talentId != null and talentId != 0">talent_id,</if>
+        <if test="name != null and name != ''">name,</if>
+        <if test="pseudonym != null and pseudonym != ''">pseudonym,</if>
+        <if test="englishName != null and englishName != ''">english_name,</if>
+        <if test="sex != null and sex != ''">sex,</if>
+        <if test="birth != null and birth != ''">birth,</if>
+        <if test="exprYear != null and exprYear != 0">expr_year,</if>
+        <if test="nation != null and nation != ''">nation,</if>
+        <if test="inJapanYear != null and inJapanYear != 0">in_japan_year,</if>
+        <if test="japanLevel != null and japanLevel != ''">japan_level,</if>
+        <if test="station != null and station != ''">station,</if>
+        <if test="school != null and school != ''">school,</if>
+        <if test="major != null and major != ''">major,</if>
+        <if test="picture != null and picture != ''">picture,</if>
+        <if test="price != null and price != 0">price,</if>
+        <if test="skillSheet != null and skillSheet != ''">skill_sheet,</if>
+        <if test="talentDescription != null and talentDescription != ''">talent_description,</if>
+        <if test="email != null and email != ''">email,</if>
+        <if test="phone != null and phone != ''">phone,</if>
+        <if test="wechat != null and wechat != ''">wechat,</if>
+        <if test="line != null and line != ''">line,</if>
+        <if test="belongCompany != null and belongCompany != ''">belong_company,</if>
+        <if test="appointStatus != null and appointStatus != ''">appoint_status,</if>
+        <if test="blacklistReason != null and blacklistReason != ''">blacklist_reason,</if>
+        <if test="blacklistTime != null and blacklistTime != ''">blacklist_time,</if>
+        <if test="status != null and status != ''">status,</if>
+        <if test="createBy != null and createBy != ''">created_by,</if>
+        <if test="remark != null and remark != ''">remark,</if>
+        <if test="companyName != null and companyName != ''">company_name,</if>
+        <if test="predictMonth != null and predictMonth != ''">predict_month,</if>
+        created_time
+        )values(
+        <if test="talentId != null and talentId != 0">#{talentId},</if>
+        <if test="name != null and name != ''">#{name},</if>
+        <if test="pseudonym != null and pseudonym != ''">#{pseudonym},</if>
+        <if test="englishName != null and englishName != ''">#{englishName},</if>
+        <if test="sex != null and sex != ''">#{sex},</if>
+        <if test="birth != null and birth != ''">#{birth},</if>
+        <if test="exprYear != null and exprYear != 0">#{exprYear},</if>
+        <if test="nation != null and nation != ''">#{nation},</if>
+        <if test="inJapanYear != null and inJapanYear != 0">#{inJapanYear},</if>
+        <if test="japanLevel != null and japanLevel != ''">#{japanLevel},</if>
+        <if test="station != null and station != ''">#{station},</if>
+        <if test="school != null and school != ''">#{school},</if>
+        <if test="major != null and major != ''">#{major},</if>
+        <if test="picture != null and picture != ''">#{picture},</if>
+        <if test="price != null and price != 0">#{price},</if>
+        <if test="skillSheet != null and skillSheet != ''">#{skillSheet},</if>
+        <if test="talentDescription != null and talentDescription != ''">#{talentDescription},</if>
+        <if test="email != null and email != ''">#{email},</if>
+        <if test="phone != null and phone != ''">#{phone},</if>
+        <if test="wechat != null and wechat != ''">#{wechat},</if>
+        <if test="line != null and line != ''">#{line},</if>
+        <if test="belongCompany != null and belongCompany != ''">#{belongCompany},</if>
+        <if test="appointStatus != null and appointStatus != ''">#{appointStatus},</if>
+        <if test="blacklistReason != null and blacklistReason != ''">#{blacklistReason},</if>
+        <if test="blacklistTime != null and blacklistTime != ''">#{blacklistTime},</if>
+        <if test="status != null and status != ''">#{status},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        <if test="remark != null and remark != ''">#{remark},</if>
+        <if test="companyName != null and companyName != ''">#{companyName},</if>
+        <if test="predictMonth != null and predictMonth != ''">#{predictMonth},</if>
+        sysdate()
+        )
+    </insert>
+
+    <update id="edit" parameterType="ucl.group.talentManageSystem.api.db.pojo.BasicTalentEntity">
+        update basic_talent
+        <set>
+            <if test="name != null and name != ''">name=#{name},</if>
+            <if test="pseudonym != null and pseudonym != ''">pseudonym=#{pseudonym},</if>
+            <if test="englishName != null ">english_name=#{englishName},</if>
+            <if test="sex != null ">sex=#{sex},</if>
+            <if test="birth != null "> birth=#{birth},</if>
+            <if test="exprYear != null ">expr_year=#{exprYear},</if>
+            <if test="nation != null "> nation=#{nation},</if>
+            <if test="inJapanYear != null ">in_japan_year=#{inJapanYear},</if>
+            <if test="japanLevel != null "> japan_level=#{japanLevel},</if>
+            <if test="station != null ">station=#{station},</if>
+            <if test="school != null ">school=#{school},</if>
+            <if test="major != null ">major=#{major},</if>
+            <if test="picturrice != null ">price=#{price},</if>
+            <if test="e != null "> picture=#{picture},</if>
+            <if test="pskillSheet != null "> skill_sheet=#{skillSheet},</if>
+            <if test="talentDescription != null ">talent_description=#{talentDescription},</if>
+            <if test="email != null ">email=#{email},</if>
+            <if test="phone != null "> phone=#{phone},</if>
+            <if test="wechat != null "> wechat=#{wechat},</if>
+            <if test="line != null ">line=#{line},</if>
+            <if test="belongCompany != null "> belong_company=#{belongCompany},</if>
+            <if test="appointStatus != null ">appoint_status=#{appointStatus},</if>
+            <if test="blacklistReason != null ">blacklist_reason=#{blacklistReason},</if>
+            <if test="blacklistTime != null ">blacklist_time=#{blacklistTime,jdbcType=DATE},</if>
+            <if test="status != null ">status=#{status},</if>
+            <if test="updateBy != null ">updated_by=#{updateBy},</if>
+            <if test="deletedBy != null ">deleted_by=#{deletedBy},</if>
+            <if test="deletedTime != null ">deleted_time=#{deletedTime},</if>
+            <if test="remark != null ">remark=#{remark},</if>
+            <if test="companyName != null">company_name=#{companyName},</if>
+            predict_month=#{predictMonth},updated_time = sysdate()
+        </set>
+        where talent_id = #{talentId}
+    </update>
+    <delete id="remove" parameterType="int">
+        update basic_talent set del_flag = '2' where talent_id in
+        <foreach collection="array" item="talentId" open="(" separator="," close=")">
+            #{talentId}
+        </foreach>
+    </delete>
+    <update id="undeletion" parameterType="int">
+        update basic_talent set del_flag = '0' where talent_id =#{talentId}
+    </update>
+
+
+    <select id="searchLabelByTalentId" parameterType="integer" resultMap="LabelYearResult">
+        SELECT l.label_id,l.name, l.name_jap, rtl.label_year
+        FROM related_talent_label rtl
+        left join basic_label l on l.label_id=rtl.label_id
+        WHERE rtl.talent_id = #{talentId} and l.status='0' and l.del_flag='0'
+    </select>
+    <delete id="removeTalentLabelByTalentId" parameterType="int">
+        delete from related_talent_label where talent_id = #{talentId}
+    </delete>
+    <delete id="removeTalentBusinessByTalentId" parameterType="int">
+        delete from related_talent_business where talent_id = #{talentId}
+    </delete>
+    <insert id="addTalentLabel" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedTalentLabel">
+        insert into related_talent_label
+        (talent_id,label_id,label_year)
+        values(
+        #{talentId},#{labelId},#{labelYear}
+        )
+    </insert>
+
+    <insert id="addTalentBusiness" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedTalentBusiness">
+        insert into related_talent_business
+        (talent_id,business_id,business_year)
+        values(
+        #{talentId},#{businessId},#{businessYear}
+        )
+    </insert>
+
+    <select id="selectTalentIdByLabelYear"
+            parameterType="ucl.group.talentManageSystem.api.controller.form.talentForm.LabelYearForm"
+            resultType="int">
+        SELECT t.talent_id
+        FROM basic_talent t
+        <!-- 使用 foreach 动态构建多个 JOIN -->
+        <foreach item="condition" index="index" collection="labelYears"
+                 open="" separator=" " close="">
+            JOIN related_talent_label rtl_${condition.labelId}
+            ON t.talent_id = rtl_${condition.labelId}.talent_id
+            AND rtl_${condition.labelId}.label_id = #{condition.labelId}
+            AND rtl_${condition.labelId}.label_year >= #{condition.labelYear}
+        </foreach>
+        GROUP BY t.talent_id
+    </select>
+</mapper>

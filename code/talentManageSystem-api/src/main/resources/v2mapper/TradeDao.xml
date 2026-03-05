@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.excelSystem.api.db.dao.TradeDao">
+    <select id="getTotalSalesAmountByProjectId" resultType="java.math.BigDecimal">
+        select
+        total_sales_amount AS totalSalesAmount
+        from basic_v2_trading_management
+        where
+        project_id = #{projectId}
+        and
+        active_flg = 1
+        and
+        DATEDIFF(applicable_month, #{queryMonth}) >= 0
+        and
+        DATEDIFF(applicable_month, #{queryMonth}) &lt; 31
+    </select>
+    <select id="getPreviousMonthActuarialBalanceByProjectId" resultType="java.math.BigDecimal">
+        select
+        previous_month_actuarial_balance AS previousMonthActuarialBalance
+        from basic_v2_clearing_balance
+        where
+        project_id = #{projectId}
+        and
+        active_flg = 1
+        and
+        DATEDIFF(target_month, #{queryMonth}) >= 0
+        and
+        DATEDIFF(target_month, #{queryMonth}) &lt; 31
+    </select>
+    <select id="getTradingStatus" resultType="java.lang.Integer">
+        select
+        trading_status AS tradingStatus
+        from basic_v2_trading_management
+        where
+        project_id = #{projectId}
+        and
+        active_flg = 1
+        and
+        DATEDIFF(applicable_month, #{queryMonth}) >= 0
+        and
+        DATEDIFF(applicable_month, #{queryMonth}) &lt; 31
+    </select>
+
+    <select id="getProjectIds" resultType="java.lang.Integer">
+        select
+        project_id AS projectId
+        from basic_v2_clearing_balance
+        where
+        active_flg = 1
+        and
+        DATEDIFF(target_month, #{date}) >= 0
+        and
+        DATEDIFF(target_month, #{date}) &lt; 31
+    </select>
+    <select id="selectSaleCompanyByProjectId" resultType="java.util.HashMap">
+        SELECT
+        c.company_id AS companyId,
+        c.company_abbreviation AS companyAbbreviation
+        FROM basic_v2_trading_management t
+        INNER JOIN basic_v2_company_management c
+        ON t.sales_company_id = c.company_id
+        WHERE t.active_flg = 1
+        AND t.project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+        <!--AND c.active_flg = 1-->
+        AND c.sale_or_procurement = 1;
+    </select>
+    <select id="getDepartmentsByProjectIds" resultType="java.util.HashMap">
+        SELECT
+        d.department_id AS departmentId,
+        d.department_abbreviation AS departmentAbbreviation,
+        d.principal_name AS principalName
+        FROM basic_v2_project_manage p
+        INNER JOIN basic_v2_department_management d
+        ON p.department_id = d.department_id
+        WHERE p.active_flg = 1
+        AND p.project_id IN
+        <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </select>
+    <select id="isExist" resultType="java.lang.Boolean">
+        SELECT
+        CASE WHEN EXISTS
+        (
+            SELECT
+            1
+            FROM basic_v2_clearing_balance
+            WHERE
+            project_id = #{projectId}
+            AND
+            active_flg = 1
+            AND
+            DATEDIFF(target_month, #{queryMonth}) >= 0
+            AND
+            DATEDIFF(target_month, #{queryMonth}) &lt; 31
+        )
+        THEN TRUE
+        ELSE FALSE
+        END AS isExist
+    </select>
+
+</mapper>

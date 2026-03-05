@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ucl.group.talentManageSystem.api.db.dao.LabelDao">
+
+    <select id="LabelSearchByPage" parameterType="Map" resultType="HashMap">
+        select
+            bl.label_id as labelId,
+            bl.name as labelName,
+            bl.name_jap as labelNameJap,
+            blt.type_id as typeId,
+            blt.name as typeName,
+            blt.name_jap as typeNameJap
+        from
+            talentmanagesystem.basic_label bl
+        join
+            talentmanagesystem.related_label_type rlt on rlt.label_id = bl.label_id
+        join
+            talentmanagesystem.basic_label_type blt on blt.type_id = rlt.type_id
+        WHERE
+            bl.del_flag = 0
+        AND
+            bl.status = ${status}
+        <if test="labelName!=null">
+            AND bl.name LIKE '%${labelName}%'
+        </if>
+        <if test="typeId!=null">
+            AND rlt.type_id = ${typeId}
+        </if>
+        LIMIT ${length} OFFSET ${start}
+    </select>
+
+    <select id="LabelSearchCount" parameterType="Map" resultType="long">
+        SELECT
+            COUNT(*)
+        from
+            talentmanagesystem.basic_label bl
+        join
+            talentmanagesystem.related_label_type rlt on rlt.label_id = bl.label_id
+        join
+            talentmanagesystem.basic_label_type blt on blt.type_id = rlt.type_id
+        WHERE
+            bl.del_flag = 0
+        AND
+            bl.status = ${status}
+        <if test="labelName!=null">
+            AND bl.name LIKE '%${labelName}%'
+        </if>
+        <if test="typeId!=null">
+            AND rlt.type_id = ${typeId}
+        </if>
+    </select>
+
+    <insert id="LabelInsert" parameterType="ucl.group.talentManageSystem.api.db.pojo.LabelEntity"
+            useGeneratedKeys="true" keyProperty="labelId">
+        INSERT INTO talentmanagesystem.basic_label (name, name_jap, status, del_flag, remark, created_by, created_time)
+        VALUES (#{labelName}, #{labelNameJap}, 0, 0, #{remark}, #{createBy}, NOW())
+    </insert>
+
+    <insert id="RelatedLabelInsert" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedLabelTypeEntity">
+        INSERT INTO talentmanagesystem.related_label_type(label_id, type_id) VALUES(#{labelId}, #{typeId})
+    </insert>
+
+    <update id="LabelUpdate" parameterType="ucl.group.talentManageSystem.api.db.pojo.LabelEntity">
+        UPDATE talentmanagesystem.basic_label
+        SET
+            name = #{labelName},
+            name_jap = #{labelNameJap},
+            updated_by = #{updateBy},
+            updated_time = NOW()
+        WHERE
+            label_id = #{labelId}
+    </update>
+
+    <update id="RelatedLabelUpdate" parameterType="ucl.group.talentManageSystem.api.db.pojo.RelatedLabelTypeEntity">
+        UPDATE talentmanagesystem.related_label_type
+        SET
+            type_id = #{typeId}
+        WHERE
+            label_id = #{labelId}
+    </update>
+
+    <delete id="LabelDeletes">
+        UPDATE talentmanagesystem.basic_label
+        SET del_flag = 2
+        WHERE label_id IN
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="labelSelect" resultType="HashMap">
+        SELECT
+            blt.name AS typeName,
+            blt.type_id AS typeId,
+            bl.label_id AS labelId,
+            bl.name AS labelName
+        FROM
+            basic_label_type blt
+        JOIN
+            related_label_type rlt ON blt.type_id = rlt.type_id
+        JOIN
+            basic_label bl ON rlt.label_id = bl.label_id
+        WHERE
+            bl.status = 0 AND bl.del_flag = 0
+        ORDER BY blt.type_id, bl.label_id;
+    </select>
+
+    <select id="searchById" parameterType="int" resultType="java.util.HashMap">
+        SELECT
+            bl.name AS labelName,
+            bl.name_jap AS labelNameJap,
+            rlt.type_id AS typeId,
+            blt.name AS typeName,
+            blt.name_jap AS typeNameJap
+        FROM
+            talentmanagesystem.basic_label bl
+        JOIN
+            talentmanagesystem.related_label_type rlt ON rlt.label_id = bl.label_id
+        JOIN
+            talentmanagesystem.basic_label_type blt ON blt.type_id = rlt.type_id
+        WHERE
+            bl.label_id = #{labelId}
+    </select>
+
+</mapper>
