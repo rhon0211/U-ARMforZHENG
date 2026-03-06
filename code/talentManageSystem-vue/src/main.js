@@ -12,6 +12,9 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import ja from 'element-plus/lib/locale/lang/ja';
+import './views/main.less';
+import './assets/scss/index.scss';
+import './assets/scss/modern-overrides.scss';
 
 // 导入工具库和配置
 import $ from 'jquery';
